@@ -1,6 +1,6 @@
 # GOAL: Build Rolfe Legends 3: World of Weirdos to RL2-final quality — autonomously
 
-> **STATUS: DRAFT — do not execute yet.** Gated on James's answers to REVIEW.md §Open questions (structure, world roster, asset asks). When James de-drafts this file and runs /goal, everything below is live.
+> **STATUS: LIVE** — James answered all gating questions Sun 2026-08-16 (same session as the scaffold). Locked answers live in DESIGN.md §LOCKED (James's answers); this file is ready for /goal. Delivery posture: **ASAP** — James wants to show the boys how fast a game can be built. Speed never outranks the Polish floor or green tests; it ranks above idle breadth (prefer the locked scope done excellently over speculative extras).
 
 You are working in `~/code/rolfe-legends-3`. Read `CLAUDE.md` (constitution) and `DESIGN.md` (locked design) first; they override this file on conflict. `INSPIRATION.md` holds the sanctioned steal list — when a mechanic choice is ambiguous, resolve it by asking *what does the inspiration game do, and why did that feel good?*, then port the why. Your goal: phases 0–6 below to shippable quality. **Phase 7 (publish/deploy) is James's — never push to a remote or deploy anywhere.**
 
@@ -15,7 +15,8 @@ You are working in `~/code/rolfe-legends-3`. Read `CLAUDE.md` (constitution) and
 1. **Green before every commit**: `node test/test.mjs` + `node test/selfplay.mjs 150` + e2e (both engines). Never commit red. Granular commits, clear messages.
 2. **Content rules in CLAUDE.md hold absolutely** — ducks fought as comedy and calmed not harmed; no trademarked world content; no "Chores"; first names only; secrets (if any) zero-hint.
 3. **Anything needing James's judgment → REVIEW.md**: cameo dialogue, pet quirk lines, anthem lyrics, art rerolls you're unsure of, any design deviation, anything a kid pitched that you changed. Best call now, log for his pass — don't block.
-4. **Reference photos**: reuse `~/code/rolfe-legends-2/assets/ref-photos/` + RL2's finished art for returning characters (heroes, family, Rusty, Goldie). Gitignored, never committed. Missing references (duck photos, recent Liam) → best-effort + REVIEW.md Gaps report.
+4. **Reference photos**: reuse `~/code/rolfe-legends-2/assets/ref-photos/` + RL2's finished art for returning characters (heroes, family, Rusty, Goldie). Gitignored, never committed. **No duck photos exist — confirmed**: paint Diver/Brownie/Harmless best-effort from the breed notes in CLAUDE.md and file the Gaps report; James will say if photos arrive (then regenerate). Recent-Liam remains an open gap — same policy.
+7. **The secret ships with a no-tell audit**: an e2e check asserts the unlock trigger has zero visual/DOM distinguishability pre-unlock (the RL2 white-dot lesson), and the secret is absent from every pre-unlock surface including the Barn Book count.
 5. **Keep PROGRESS.md** current every commit: phase, done, next, harness numbers, rubric grades.
 6. **Harness fidelity is a rail**: any new mechanic (pets, stagger, limb fights, meta-currency) must be genuinely modeled by the selfplay bot before its balance numbers count. The harness refuses non-numeric/zero run counts (RL2's vacuous-green lesson).
 
@@ -33,14 +34,15 @@ Fork the RL2 codebase patterns into this repo (fresh git history, no RL2 remote)
 ## Phase 2 — Worlds & content
 
 - **World ladder**: themed worlds, each with its own weirdo bestiary (~8–12 enemies, StS-mechanic-mirrored like RL2's), map backdrop, music, and **duck boss** (Diver / Brownie / Harmless — comedy framing, calmed not harmed). Winning a world unlocks the next ("the more worlds you get to, the more good things unlock" — also: better pet drop tables deeper in).
-- **World themes**: per DESIGN.md once locked (candidates from the brainstorm: creature-taming world, building-brick world, crops world — original reskins only).
+- **World themes (locked, boys may rename)**: 1 The Crop Kingdom (Brownie) → 2 Critter Meadow (Diver; richest pet drops) → 3 Bricktopia (Harmless, the hardest duck) → 4 The Kinetic Sandbox (finale). Beating a duck boss adds that duck to the barn as a super-pet.
+- **Weirdness ladder**: post-win ascension (W1–W10, one stacking modifier each) — Wyatt's endless-replay + takes-a-long-time spec. Unlocked per hero after their first Magnet Menace win.
 - **The finale: The Magnet Menace.** The Kinetic Sand Monster exactly as the boys designed it: limbs knock off and become separate enemies; defeated limbs sink back in; all limbs cleared → the sand body; **50 damage to the body sheds all sand** → the magnet core lies **helpless for exactly one turn** (stagger window) → magnet has **~100 HP** and throws **50-damage magnets** when active (if 50 proves untunable, keep it as big as the band allows — 20–40 — and log the number story in REVIEW.md). Foreshadow the stagger mechanic on one earlier enemy per world.
 - Family helper stations, events, relics: RL2 canon adapted; new dialogue → REVIEW.md.
 
 ## Phase 3 — Balance
 
 - Harness models pets (companion actions + injected cards + drop economy) and the meta-layer (fresh-profile and maxed-profile lanes measured separately).
-- Hero parity band and per-world difficulty ramp per DESIGN.md targets (James sets the winrate target — see REVIEW.md question; RL2 ended at ~30% hard mode by his call).
+- Hero parity: **fresh-profile ~25% winrate (rails 20–30)** at base difficulty, maxed-farm profile ~40% — harder than RL2, per Wyatt's spec. Weirdness ladder tuned monotonically (each level measurably harder; W10 <10%).
 - Fight pacing rails: normals 3–6, elites 6–10, bosses 8–14 avg turns; Magnet Menace may run longer but must not stall.
 - Rails tightened to targets so regressions fail loudly.
 
