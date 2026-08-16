@@ -38,7 +38,9 @@ for f in "$ORIG"/actcards/*.png; do
 done
 for f in "$ORIG"/backgrounds/*.png; do
   [ -e "$f" ] || continue
-  emit "$f" "assets/backgrounds/$(basename "${f%.png}").jpg" 1024
+  base="$(basename "${f%.png}")"
+  base="${base/bg/battle}"  # generator writes bgN; the game hooks read battleN
+  emit "$f" "assets/backgrounds/$base.jpg" 1024
 done
 # RL3: pets + farm scenes + app icon
 for f in "$ORIG"/pets/*.png; do
