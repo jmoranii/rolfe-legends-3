@@ -612,7 +612,7 @@ function showSettings() {
       fs.onclick = () => toggleFullscreen();
       m.append(mus, sx, anim, fs, a2hs, reset);
     } else m.append(mus, sx, anim, a2hs, reset);
-    m.appendChild(el('p', 'subtitle', `Rolfe Legends 2 · made with love by Uncle James<br><span style="opacity:.55;font-size:.72rem">version: ${new Date(document.lastModified).toLocaleString()}</span>`));
+    m.appendChild(el('p', 'subtitle', `Rolfe Legends 3 · made by Wyatt, Aaron & Uncle James<br><span style="opacity:.55;font-size:.72rem">version: ${new Date(document.lastModified).toLocaleString()}</span>`));
   });
 }
 

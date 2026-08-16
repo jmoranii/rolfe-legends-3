@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — seeded RNG (mulberry32). Pure. All game logic randomness
+// Rolfe Legends 3 — seeded RNG (mulberry32). Pure. All game logic randomness
 // flows through one of these so runs are reproducible and testable.
 
 export function makeRng(seed) {

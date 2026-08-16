@@ -661,7 +661,7 @@ for (const key of Object.keys(ENEMIES)) {
 // RL3: anthems not generated yet — audit arms itself per-file as .lrc captures land.
 if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   const anthem = (h) => parseLrc(readFileSync(new URL(`../assets/audio/anthem_${h}.lrc`, import.meta.url), 'utf8'));
-  for (const hero of ['aaron', 'wyatt', 'liam', 'both']) {
+  for (const hero of ['aaron', 'wyatt', 'liam', 'all']) {
     const lines = anthem(hero);
     const ws = lines.flatMap((l) => l.words);
     ok(ws.every((w, i) => !i || w.t >= ws[i - 1].t - 0.01), `${hero} anthem: word times monotonic`);
@@ -670,15 +670,22 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
     ok(!stall, `${hero} anthem: no orphaned line tails (the Poppa Flaj jumble)`);
   }
   const an = deriveBeats(anthem('aaron'), 'aaron').map((b) => b.scene.name);
-  for (const want of ['THE MUD KING', 'The Raccoon King', 'Mom', 'Dad', 'Poppa Flaj', 'The Big Twister']) {
+  for (const want of ['Rusty', 'Brownie', 'Diver', 'Harmless', 'The Magnet']) {
     ok(an.includes(want), `aaron anthem shows ${want}`);
   }
-  const bothBeats = deriveBeats(anthem('both'), 'both');
-  const bn = bothBeats.map((b) => b.scene.name);
-  for (const want of ['Mom', 'Dad', 'Granny Rockie', 'Poppa Flaj', 'The Ducks', 'Uncle Brody', 'Aunt Chelsea', 'Coach James', 'Rusty', 'Goldie']) {
-    ok(bn.includes(want), `both finale shows ${want}`);
+  const wy = deriveBeats(anthem('wyatt'), 'wyatt').map((b) => b.scene.name);
+  for (const want of ['Bruno', 'Brownie', 'Diver', 'Harmless', 'The Magnet']) {
+    ok(wy.includes(want), `wyatt anthem shows ${want}`);
   }
-  ok(bothBeats.every((b, i) => !i || b.t - bothBeats[i - 1].t >= 1.5 - 1e-9), 'both: beats spaced ≥1.5s (no slide whiplash)');
+  const allBeats = deriveBeats(anthem('all'), 'all');
+  const bn = allBeats.map((b) => b.scene.name);
+  for (const want of ['WYATT & AARON & LIAM', 'Brownie', 'Diver', 'Harmless', 'The Magnet', 'Coach James', 'Mom']) {
+    ok(bn.includes(want), `all-finale shows ${want}`);
+  }
+  // no-tell canon: no anthem may derive a beat for the secret
+  for (const hero of ['aaron', 'wyatt', 'liam', 'all']) {
+    ok(!deriveBeats(anthem(hero), hero).some((b) => /goldie/i.test(b.scene.name)), `${hero} anthem never shows the secret`);
+  }
 }
 
 // ---------- BELLY FLOP! + true-Claw Sticky Hands + shop/rest expansion (James, Sun 2026-08-02) ----------

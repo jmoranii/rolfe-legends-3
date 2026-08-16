@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — Slay-the-Spire-style act map generator (pure, no DOM).
+// Rolfe Legends 3 — Slay-the-Spire-style act map generator (pure, no DOM).
 // A per-act node graph climbing bottom-to-top: 12 floors, 2–4 nodes per floor,
 // branching/merging paths, non-crossing edges, seeded + deterministic.
 //

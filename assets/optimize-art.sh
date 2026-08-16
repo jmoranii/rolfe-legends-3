@@ -40,5 +40,19 @@ for f in "$ORIG"/backgrounds/*.png; do
   [ -e "$f" ] || continue
   emit "$f" "assets/backgrounds/$(basename "${f%.png}").jpg" 1024
 done
+# RL3: pets + farm scenes + app icon
+for f in "$ORIG"/pets/*.png; do
+  [ -e "$f" ] || continue
+  emit "$f" "assets/pets/$(basename "${f%.png}").jpg" 512
+done
+emit "$ORIG/ui/farm.png" "assets/ui/farm.jpg" 1024
+emit "$ORIG/ui/barn.png" "assets/ui/barn.jpg" 1024
+if [ -f "$ORIG/ui/icon.png" ]; then
+  sips -s format png -Z 192 "$ORIG/ui/icon.png" --out assets/ui/icon-192.png >/dev/null
+  sips -s format png -Z 512 "$ORIG/ui/icon.png" --out assets/ui/icon-512.png >/dev/null
+  sips -s format png -Z 180 "$ORIG/ui/icon.png" --out assets/ui/apple-touch-icon.png >/dev/null
+  cp "$ORIG/ui/icon.png" assets/ui/icon.png
+  echo "  icons refreshed"
+fi
 echo "done. deployed art:"
-du -sh assets/enemies assets/events assets/backgrounds | sed 's/^/  /'
+du -sh assets/enemies assets/events assets/backgrounds assets/pets 2>/dev/null | sed 's/^/  /'

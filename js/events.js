@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — map events (family cameos). James-approved roster + draft
+// Rolfe Legends 3 — map events (family cameos). James-approved roster + draft
 // dialogue lines (final lines get James's sign-off before ship — CLAUDE.md rule).
 // Each event: { name, emoji, speaker, line, choices: [{label, can?(run), apply(run, rng) → result string}] }
 // Pure: mutates the run object only; UI renders, selfplay picks.

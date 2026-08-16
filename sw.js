@@ -1,10 +1,10 @@
-// Rolfe Legends 2 — service worker: play offline after the first visit.
+// Rolfe Legends 3 — service worker: play offline after the first visit.
 // Shell (html/css/js) = network-first with cache fallback, so online players
 // always get the newest deploy and offline players get the last one they had.
 // Art + music = cache-first, filled lazily as fetched during play (precaching
 // the full set would punish the first visit; emoji/silence fallbacks already
 // handle anything not yet cached when offline). RL1 sw.js pattern.
-const CACHE = 'rolfe-legends-2-v33';
+const CACHE = 'rolfe-legends-3-v1';
 const SHELL = [
   './', 'index.html', 'style.css', 'manifest.json',
   'js/game.js', 'js/combat.js', 'js/run.js', 'js/map.js', 'js/cards.js',

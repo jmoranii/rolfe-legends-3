@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — Coach James's tip library (the victory-beat rotation).
+// Rolfe Legends 3 — Coach James's tip library (the victory-beat rotation).
 // Loading-screen-style wisdom: general strategy + hero-specific coaching,
 // served one per fight win. Sequential rotation per hero pool, so over many
 // runs a kid hears everything without repeats feeling constant.

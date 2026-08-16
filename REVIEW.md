@@ -11,3 +11,24 @@
 ## Dialogue / lyrics for approval
 
 (none yet)
+
+## Kid-credited deviations (build phase)
+
+- **Difficulty shape** — Wyatt's "harder than RL2, takes me a long time" implemented as: world 1 fresh ≈ 65% winrate (the on-ramp), worlds 2–3 ≈ 35–40%, world 4 ≈ 5% fresh / ≈ 20% with a battle buddy (the RL2-hard-equivalent gate), plus the Weirdness ladder (W1–10, +7% HP/+5% dmg per level) as the long game. A flat 20–30% everywhere would have made world 1 miserable for a fresh profile with nothing banked yet; the length now lives in the ladder + Barn Book completion instead. GOAL.md's original "fresh ~25% (rails 20–30)" band was retuned accordingly — rails in test/selfplay.mjs.
+- **"Fifty damage"** — shipped exactly 50 on MAGNET THROW (with a telegraphed MAGNETIZING windup turn before every throw, so it's survivable with Block). Magnet = exactly 100 HP. Untouched by all balance passes, as promised.
+- **Limb return** — a beaten limb "sinks back into the monster" implemented as +8 Block to the body (the body drinks the sand). Aaron's original words allowed several readings; this one keeps limb-killing a real choice.
+- **Goldie Knows** — CLAUDE.md spec said "look at top 3, reorder"; shipped as draw 3, discard 2 (kid-simpler, no new UI mode). Same fantasy: Goldie knows what's coming.
+
+## Dialogue / lyrics for approval (shipped as drafts, per ground rule 3)
+
+- **Anthem lyrics** ×4: assets/lyrics/*.txt (Whyatt/Leeum sing-spellings; captions remap). All four generated take-1 and shipped with word-level LRC karaoke.
+- **Scout reports** ×68: js/scout.js (Coach's voice, describe-don't-prescribe audited by unit test).
+- **World story cards** ×4 + settlement lines + crown-screen victory lines: js/game.js.
+- **Pet blurbs + quirk lines** ×18: js/pets.js.
+
+## Gaps & Personalization report
+
+1. **Duck likenesses** (top gap): Diver/Brownie/Harmless painted from breed descriptions only (white Appleyard-guess / all-brown / black Cayuga). Real photos → regenerate `pet_diver, pet_brownie, pet_harmless, boss_brownie, boss_diver, boss_harmless` via `./assets/generate-art.sh <ids>` (delete the files first).
+2. **Liam reference**: portrait reused from RL2 (which used the two recent photos from Fri 2026-08-01) — still the freshest available.
+3. **Boys' own weirdo ideas**: the bestiary is Hugo-invented per James's creative-liberty grant. Any weirdo the boys pitch later can replace or join a world pool — enemies are data + a move function + one painting.
+4. **World names**: The Crop Kingdom / Critter Meadow / Bricktopia / The Kinetic Sandbox are Hugo's; the boys may rename any (DESIGN.md offer stands) — renames touch WORLD_INFO, story cards, README.

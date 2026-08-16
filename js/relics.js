@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — Farm Treasures (relics). Data; hooks live in combat.js/run.js.
+// Rolfe Legends 3 — Farm Treasures (relics). Data; hooks live in combat.js/run.js.
 // Every relic names its StS original. James-approved list, Thu 2026-07-30.
 
 export const RELICS = {

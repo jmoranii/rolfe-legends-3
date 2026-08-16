@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — procedural WebAudio SFX (no audio files). RL1 pattern.
+// Rolfe Legends 3 — procedural WebAudio SFX (no audio files). RL1 pattern.
 let ctx = null;
 let enabled = true;
 

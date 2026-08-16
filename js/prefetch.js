@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — predictive prefetch: instant boot AND no pop-in.
+// Rolfe Legends 3 — predictive prefetch: instant boot AND no pop-in.
 // The game boots on ~350KB, then this queue quietly warms what's PROBABLY
 // next (act art on the title, reachable enemies on the map, your anthem when
 // the final boss starts). Fetches run one at a time during idle moments so

@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — card data. Pure data; js/combat.js interprets.
+// Rolfe Legends 3 — card data. Pure data; js/combat.js interprets.
 // Every card notes its Slay the Spire original (design mirrors StS per DESIGN.md).
 // Effect ops: dmg, times, allEnemies, block, draw, energy, loseHp, selfStr, selfDex,
 // tempStr, status:{k,n,target:'target'|'self'|'all'}, addCard:{id,n,to}, power:'id',
