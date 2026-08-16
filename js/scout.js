@@ -1,71 +1,88 @@
-// Rolfe Legends 2 — Coach James's scouting reports. Tap any enemy in a fight and
+// Rolfe Legends 3 — Coach James's scouting reports. Tap any weirdo in a fight and
 // Coach tells you what it actually does — and ONLY what it does.
 //
-// Rules for writing these (James, Sun 2026-08-03):
+// Rules for writing these (James, RL2, Sun 2026-08-03 — still canon):
 // 1. Every line must be TRUE of the code in js/enemies.js. A scouting report
 //    that's merely flavorful is worse than none — the kid will trust it and get hit.
 // 2. NO how-to-beat advice. Many answers is the point of the game; Coach names
-//    the mechanic and stops. Reassurance ("it's not broken, it's him") is fine;
-//    prescriptions ("take him out first", "save your big hit") are not.
+//    the mechanic and stops. Reassurance ("it's not broken, it's the moth") is
+//    fine; prescriptions ("take him out first") are not.
 //
-// DRAFT — family cameo dialogue needs James's sign-off before ship (CLAUDE.md).
+// DRAFT — dialogue gets James's word pass (REVIEW.md).
 
 export const SCOUT = {
-  // ================= ACT 1 — The Far Fields =================
-  crow: "First thing it does is CAW, and after that it gets a little stronger every single turn. That's the whole trick — the longer this bird's alive, the harder it pecks.",
-  gopher: "He mixes it up: a big Chomp, a Thrash that hits AND blocks, or he burrows down and bulks up for a heavier one next turn.",
-  roly_poly: "Little guy. The first time you hit him, he curls up and shrugs 6 damage right off the top — but only that once.",
-  roly_poly_curled: "He's balled up now, with Block soaking your hits. That trick only happens once — there's nothing else behind it.",
-  mud_blob_m: "Knock it to half and it SPLITS into two. That's not you doing something wrong — that's just what mud does.",
-  mud_blob_s: "Little blip. Barely a splat in him.",
-  mouse_scrappy: "Every time you hit him, he gets MADDER — and madder means harder.",
-  mouse_zippy: "Fast and bitey, and he hits harder than the others his size. No tricks, no armor.",
-  mouse_pudge: "The chunky one. His belly bump doesn't hurt much, but it leaves you Weak, so your own hits land softer for a bit.",
-  mouse_whiskers: "See how he's talking to the others? That speech makes every OTHER mouse stronger. He's the reason the little ones hurt.",
-  puffball: "When it goes down, it pops — and the spore burst makes you Vulnerable for a couple of turns. That part happens no matter what.",
-  magpie: "She's a thief. Two snatches, then she covers up, then she's GONE with your gold. About three turns and she's off.",
-  barn_spider: "Bites hard, and every so often webs you up Weak. No tricks beyond that.",
-  old_scarecrow: "He's just standing there. Menacingly. And blocking while he does it. He wakes up on his own after a few turns — or the second anybody hits him.",
-  ornery_ram: "He snorts, and after THAT, every skill card you play makes him stronger. Attacks don't feed him. Skills do.",
-  scarecrow_post: "It flips back and forth: a straw beam, then it shoves junk Straw cards into your discard pile that clog your deck for the rest of the fight.",
-  rogue_combine: "The boss of the fields, with TWO modes. In mow mode he winds up and then MOWS for a huge hit. Take him down far enough and he clanks into armored mode — big Block, and spikes that bite anyone who touches him. A couple turns later the engine roars, and he's mowing again.",
-  rogue_combine_hunker: "Buttoned up in armored mode: big Block, and spikes that bite back on every hit. Two turns of this, then the engine roars and the mowing starts again.",
-  mud_king: "He rules the mud until you knock him to half — and then he doesn't die. He splits into two full-size blobs. This fight has a second half.",
+  // ================= WORLD 1 — The Crop Kingdom =================
+  angry_sprout: "First it PHOTOSYNTHESIZES, and after that it gets a little stronger every single turn. The longer this sprout's alive, the harder it slaps.",
+  corn_colonel: "The Colonel mixes it up: a big Kernel Chomp, a Cob Charge that hits AND blocks, or a Drill Formation that bulks him up for the next one.",
+  rolling_pumpkin: "The first time you hit it, it hunkers into its rind and shrugs 6 damage right off the top — but only that once.",
+  rolling_pumpkin_curled: "It's hunkered now, rind soaking your hits. That trick only happens once — there's nothing else in there but pumpkin.",
+  compost_blob_m: "Knock it to half and it SPLITS in two. That's not you doing something wrong — that's just what compost does.",
+  compost_blob_s: "A little blip of yard waste. Barely a squish in it.",
+  weed_dandelion: "Every time you hit Dan, he gets MADDER — and madder means harder.",
+  weed_thistle: "Prickly and quick, and they poke harder than the others their size. No tricks, no armor.",
+  weed_burr: "The sticky one. His tackle doesn't hurt much, but it leaves you Weak, so your own hits land softer for a bit.",
+  weed_clover: "See him giving that lucky speech? It makes every OTHER weed stronger. He's the reason the little ones hurt.",
+  puff_dandelion: "When it goes down, it POOFS — and the seed burst leaves you Vulnerable for a couple turns. That part happens no matter what.",
+  crow_thief: "A thief. Two snatches, then a wing guard, then it's GONE with your gold. About three turns and it's off.",
+  sticky_vine: "Lashes hard, and every so often wraps you up Weak in sap. No tricks beyond that.",
+  mega_melon: "It's just sitting there. Roundly. And blocking while it does it. It wakes up on its own after a few turns — or the second anybody hits it.",
+  giant_zucchini: "It flexes, and after THAT, every skill card you play makes it stronger. Attacks don't feed it. Skills do.",
+  sprinkler_post: "It flips back and forth: a power wash, then it soaks junk Straw into your discard pile that clogs your deck for the rest of the fight.",
+  boss_brownie: "Brownie rules this world, and nobody knows WHAT she is. She cycles waddle charges, a wing wall, and an unknowable quack that leaves you Weak and Frail — and at half health she throws a ROYAL TANTRUM: she shakes off what you've stuck on her, gets stronger, and her moves go full mystery.",
 
-  // ================= ACT 2 — The Barnyard =================
-  raccoon_bandit: "Same racket as the magpie: he mugs you for gold twice, guards up, then runs off with everything he grabbed.",
-  waltzing_weasel: "The weird one. That waltz confuses you, and your card costs go all scrambled for as long as he's dancing. It's not broken — it's him. When he goes down, everything snaps back to normal.",
-  snapping_turtle: "That shell is armor that DOESN'T wear off at the end of the turn like normal Block — and he rivets on more plating every turn.",
-  possum_defender: "The big one shields the little one — whatever damage the small one takes, big brother covers it right back up.",
-  possum_healer: "The little one heals the big one, 12 at a time. They cover for each other. That's the whole family business.",
-  thorny_bramble: "Mostly it lashes you three times fast. Sometimes it tangles you up Frail and Weak instead.",
-  porcupine: "Watch the quills: it starts at two and adds ONE MORE every single volley. Turn five is a whole lot of quills.",
-  fox: "Every bite dumps a Scraped Knee into your discard pile — dead cards clogging your deck. And she never stops doing it.",
-  raccoon_ringleader: "He calls in pups, then cheers them on to make them all stronger. And the pups keep coming as long as he's up there calling.",
-  raccoon_minion: "Just a pup. Swipes at you, sometimes hisses and blocks.",
-  raccoon_king: "The crown of the barnyard. He cycles through slams, a big trash-lid wall, and a taunt that leaves you Weak AND Frail. At half health he goes into ROYAL FURY — shakes off everything you've stuck on him and comes at you twice as mean.",
+  // ================= WORLD 2 — Critter Meadow =================
+  sparkmouse: "Zappy little critter — and unless the whole pack goes down together, a fallen one charges back up two turns later. They come BACK.",
+  flame_pup: "A very good boy who is also on fire. Big sizzle bites, a warm wag that hits and blocks, or a flare-up that makes the next one heavier.",
+  leaf_turtle: "Its leafy shell is armor that DOESN'T wear off at end of turn like normal Block — and it regrows more plating every turn.",
+  bubble_frog: "Pelts you with bubbles that stuff junk Hailstones into your DRAW pile — they melt after the fight, but they clog your hands now.",
+  mimic_moth: "Its dizzy dust scrambles your card costs — every card's price goes random while the moth's around. It's not broken. It's the moth. When it goes down, everything snaps back.",
+  snatchling: "A thief with cheek pouches. Two grabs, a fluff-up, and then it scurries off with your gold. Three-ish turns and it's gone.",
+  puffbunny: "Adorable. When it goes down it bursts into floof, and the floof leaves you Vulnerable a couple turns. Every time.",
+  big_chonk: "He stuffs both cheeks, and after THAT, every skill card you play makes him stronger. Attacks don't feed the Chonk. Skills do.",
+  queen_bee: "Her sting flurry adds one MORE sting every time she uses it. The longer the audience, the longer the royal performance.",
+  totem_triplets: "Each totem alternates: a judgy beam, then a confetti of junk cards shoved into your discard. Three of them means a lot of confetti.",
+  boss_diver: "Diver guards the pond on a strict routine: goggles down, two rounds of splashes and sprays that can leave you Weak, then a DIVE BOMB — and every dive bomb has one more hit in it than the last. She has done this before.",
 
-  // ================= ACT 3 — The Storm =================
-  ball_lightning: "Knock it out and it crackles BACK a couple of turns later — unless everything else on the field is already down. Then it stays gone.",
-  hail_cloud: "It pelts you and drops Hailstone junk cards straight into your draw pile, so you'll be drawing slush mid-fight.",
-  flooding_creek: "First it raises the water, and after that you're constricted — squeezed for damage every turn it lives. Then it just crashes on you, hard. When it goes down, the water goes with it.",
-  passing_squall: "It's got basically endless health, it hits harder EVERY turn — and after five turns it blows itself out and leaves on its own. That's the whole storm.",
-  debris_tangle: "It opens by flinging Poison Ivy into your discard — a junk card you're stuck with for the fight. After that it whips you, or throws up a junk wall. It only curses you the once.",
-  thunderhead: "See the countdown in its intent? It's real. Four rumbles, and then a THUNDERSTRIKE that will take your head off.",
-  ghost_wind: "Every other turn it goes ghostly, and hits barely touch it. Solid turn, ghost turn, back and forth. And that scythe hits like a truck.",
-  wind_funnel: "It spins up dust devils to do its dirty work. Each devil hits once, then dissipates all on its own.",
-  dust_devil: "One big whirl, and then it spends itself and vanishes on its own.",
-  thunder: "These two work together: Thunder makes them BOTH stronger every other turn, while Lightning shields the pair. That's why they're rough together.",
-  lightning: "Every other turn, Lightning throws big shields over them BOTH. On the other turns, it cracks you directly.",
-  big_twister: "The biggest one on the farm, and here's what nobody tells you: beat it once and it isn't over. It RE-FORMS — bigger, meaner, stronger. And every Power card you play makes it a little stronger too. It's curious about you.",
-  big_twister_p2: "The re-formed one. Monster gusts, triple funnels, and a roar that leaves you Weak and Vulnerable at the same time. No more phases after this — this is all of it.",
+  // ================= WORLD 3 — Bricktopia =================
+  brick_biter: "A big chomper made of bricks: stud chomps, clip-on armor that hits and blocks, or a stack-up that makes the next chomp heavier.",
+  sharp_brick: "IT IS A BRICK. Hitting it hurts YOU back — 5 damage of pure corner, every single time you touch it. It barely attacks. It doesn't need to.",
+  minifig_scrapper: "Every time you hit him, the little guy gets MADDER — and madder means harder.",
+  minifig_ninja: "Sneaky, and bonks harder than the others his size. No tricks. Just bonk.",
+  minifig_knight: "His shield shove doesn't hurt much, but it leaves you Weak for a bit. Very professional.",
+  minifig_wizard: "That plastic magic makes every OTHER minifig stronger. He's the reason the little ones hurt.",
+  brick_golem_m: "Knock it to half and it crumbles a SECOND pile loose that fights too. Bricks don't quit. They reorganize.",
+  brick_pile: "A loose pile with opinions. Scatter jabs, nothing fancy.",
+  instruction_golem: "The Instructions hit with paper cuts, and every so often make you follow STEP 47 — which leaves you Weak. Nobody has ever read past step 47.",
+  wobble_tower: "First it flings its missing piece at you — junk straight into your discard for the whole fight — then it topples at you, or rebuilds itself wrong, hitting and blocking.",
+  crane_head: "See the countdown in its intent? It's real. Four wind-ups, and then a WRECKING BALL that will flatten you.",
+  ghost_piece: "The piece that vanished under the couch. Every other turn it's UNTOUCHABLE — hits barely graze it. On its solid turns, that ambush hits like a memory.",
+  master_builder: "He speed-builds minifig backup mid-fight — two at a time if you let him — and smacks you with the blueprint in between.",
+  boss_harmless: "Harmless stands perfectly still at first. Harmlessly. Wake her — or wait — and she is NOT: beetle-green blitzes, a quiet stare that leaves you Weak and Frail, a NOT-HARMLESS SLAM… and every fourth turn she flickers into black-feather shadow that hits barely touch.",
+
+  // ================= WORLD 4 — The Kinetic Sandbox =================
+  sand_blob_m: "Knock it to half and it shears into a second blob. Kinetic sand holds together right up until it very much doesn't.",
+  sand_blob_s: "A handful of angry sand. Grain spray, nothing fancy.",
+  squish_ball: "First hit, it squishes up armor. Break through ALL that squish and it goes flat — completely HELPLESS for one whole turn. Remember how this one works. It matters later.",
+  glitter_storm: "Blasts that stuff junk Hailstones into your draw pile, or just a big sparkle slam. Glitter never fully comes off. Ask any grown-up.",
+  sandworm: "It squeezes — sand pours in and crushes you a little every turn until it's gone. The squeeze IS the fight. When it goes down, the sand drains away.",
+  play_dough_twin_a: "The blue twin shields its sibling with a big squish-together. Hits pretty hard on its own, too.",
+  play_dough_twin_b: "The red twin re-kneads its sibling back to health, 14 at a time. As long as both are up, neither really goes down.",
+  magnet_mite: "Magnets always come back: unless the whole cluster goes down together, a fallen mite re-clings a couple turns later.",
+  static_cling: "Its cling field scrambles your card costs — every price goes random while it's around. Everything sticks to everything. Including the math. It snaps back when it's gone.",
+  sand_castle: "The tide is rising, and the intent counts down every turn. At zero: THE BIG WAVE. Castles know how their story ends.",
+  rake_fingers: "Its rake flurry adds one MORE track every time it rakes. The grooves get deeper. The flurry gets longer.",
+  dust_bunny_mother: "She multiplies — nobody knows how, that's the whole thing about dust bunnies — and buries you in fluff avalanches in between.",
+  dust_bunny: "One hit of allergies, then it drifts away all on its own. Dust bunnies don't stay. They relocate.",
+  sand_monster: "It tears its own limbs loose to fight beside it — and a beaten limb sinks BACK INTO the body as armor. But land 50 total damage on the body and ALL the sand falls off at once. What's underneath is a different fight.",
+  sand_limb: "A torn-loose arm of packed sand. Beat it and it sinks back into the monster — the body drinks it up as armor.",
+  magnet_core: "THE MAGNET. It lies helpless for exactly one turn when the sand first falls. After that it alternates: MAGNETIZE to brace itself, then a MAGNET THROW that hits for FIFTY. The windup turn is the warning.",
 };
 
 // Anything without a written report falls back to this rather than showing nothing.
 export const SCOUT_FALLBACK = "Haven't got a read on this one yet. Watch what it's telegraphing.";
 
-// artKey wins when it has its own report, so a transformed enemy (the re-formed
-// Twister, the armored Combine) gets the read on the form you're actually facing.
+// artKey wins when it has its own report, so a transformed enemy (the shed
+// Magnet, the hunkered pumpkin) gets the read on the form you're actually facing.
 export function scoutFor(key, artKey) {
   return (artKey && SCOUT[artKey]) || SCOUT[key] || SCOUT_FALLBACK;
 }

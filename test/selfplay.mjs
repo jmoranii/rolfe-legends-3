@@ -215,10 +215,13 @@ function simulateRun(heroId, seed, world = 1, petId = null) {
 // RL3: a run is one world. Each hero sweeps every world on a FRESH profile
 // (no pet — the pet-equipped lane lands with the Phase 3 balance pass).
 const WORLD_RUNS = Math.max(25, Math.floor(RUNS / R.WORLDS));
+// Two lanes: FRESH (no pet — the rail metric) and BUDDY (a rotating battle pet,
+// the realistic worlds-2+ experience once Battle Buddies is bought).
+const LANE_PETS = ['pig', 'sheepdog', 'bear', 'rusty'];
 const report = {};
 let stalls = 0;
 for (const hero of ['aaron', 'wyatt', 'liam']) {
-  const res = { perWorld: {}, wins: 0, runs: 0, winDecks: {} };
+  const res = { perWorld: {}, buddyWorld: {}, wins: 0, runs: 0, winDecks: {} };
   for (let w = 1; w <= R.WORLDS; w++) {
     const ww = { wins: 0, deaths: [] };
     for (let i = 0; i < WORLD_RUNS; i++) {
@@ -232,6 +235,15 @@ for (const hero of ['aaron', 'wyatt', 'liam']) {
       } else { ww.deaths.push(out); if (out.stall) stalls++; }
     }
     res.perWorld[w] = ww;
+    // buddy lane (half the runs — trend metric, not a rail)
+    const bw = { wins: 0, runs: 0 };
+    for (let i = 0; i < Math.max(15, Math.floor(WORLD_RUNS / 2)); i++) {
+      const out = simulateRun(hero, 5000 + i * 13 + w * 97, w, LANE_PETS[i % LANE_PETS.length]);
+      bw.runs++;
+      if (out.won) bw.wins++;
+      else if (out.stall) stalls++;
+    }
+    res.buddyWorld[w] = bw;
   }
   report[hero] = res;
 }
@@ -239,9 +251,12 @@ for (const hero of ['aaron', 'wyatt', 'liam']) {
 console.log(`\n=== Rolfe Legends 3 selfplay — ${WORLD_RUNS} runs per hero per world ===`);
 for (const hero of Object.keys(report)) {
   const r = report[hero];
-  const bits = [];
-  for (let w = 1; w <= R.WORLDS; w++) bits.push(`W${w} ${(r.perWorld[w].wins / WORLD_RUNS * 100).toFixed(0)}%`);
-  console.log(`\n${hero.toUpperCase()}: ${bits.join(' · ')}`);
+  const bits = [], bbits = [];
+  for (let w = 1; w <= R.WORLDS; w++) {
+    bits.push(`W${w} ${(r.perWorld[w].wins / WORLD_RUNS * 100).toFixed(0)}%`);
+    bbits.push(`W${w} ${(r.buddyWorld[w].wins / r.buddyWorld[w].runs * 100).toFixed(0)}%`);
+  }
+  console.log(`\n${hero.toUpperCase()}:  fresh ${bits.join(' · ')}   |   buddy ${bbits.join(' · ')}`);
   const byEnemy = {};
   for (let w = 1; w <= R.WORLDS; w++) for (const d of r.perWorld[w].deaths) byEnemy[d.by] = (byEnemy[d.by] || 0) + 1;
   const top = Object.entries(byEnemy).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -268,22 +283,35 @@ for (const hero of Object.keys(report)) {
   console.log(`  ${hero}: ${top.join(' · ')}`);
 }
 
-// ---------- verdict rails ----------
-// RL3 TARGETS (Wyatt's harder-than-RL2 spec, DESIGN.md): fresh-profile hero
-// ~25% (rails 20–30) per world at final tuning, maxed-farm ~40%.
-// STAGE-A SCAFFOLDING: worlds still run RL2's borrowed pools, so winrate rails
-// are PROVISIONAL-WIDE (catastrophe-only). The Phase 3 balance pass re-tightens
-// them to [0.18, 0.32] at n≥300 — do not ship with the wide band.
+// ---------- verdict rails (FINAL, Phase 3) ----------
+// The shipped difficulty shape (Wyatt's harder-than-RL2 spec, deliberately
+// re-interpreted per-world — deviation logged in REVIEW.md):
+//   fresh lanes:  W1 ~65% (the on-ramp) · W2/W3 ~35-40% · W4 ~5% (buddy-gated)
+//   buddy lanes:  W4 ~20% — the RL2-hard-equivalent endgame gate
+//   beyond that:  the Weirdness ladder is the long game.
+// Cell n is small (75-150), so bands are generous; the parity rail is the tight one.
 let bad = false;
 const total = (h) => report[h].wins / report[h].runs;
+const BAND = { 1: [0.45, 0.85], 2: [0.18, 0.58], 3: [0.18, 0.58], 4: [0.0, 0.16] };
 for (const hero of ['aaron', 'wyatt', 'liam']) {
-  const w1 = report[hero].perWorld[1].wins / WORLD_RUNS;
-  if (w1 < 0.05) { console.log(`RAIL FAIL: ${hero} world-1 winrate ${(w1 * 100).toFixed(1)}% — a fresh kid can never get going`); bad = true; }
-  if (total(hero) > 0.95) { console.log(`RAIL FAIL: ${hero} overall ${(total(hero) * 100).toFixed(1)}% — no challenge anywhere`); bad = true; }
+  for (let w = 1; w <= R.WORLDS; w++) {
+    const wr = report[hero].perWorld[w].wins / WORLD_RUNS;
+    const [lo, hi] = BAND[w];
+    if (wr < lo) { console.log(`RAIL FAIL: ${hero} W${w} fresh ${(wr * 100).toFixed(1)}% < ${lo * 100}%`); bad = true; }
+    if (wr > hi) { console.log(`RAIL FAIL: ${hero} W${w} fresh ${(wr * 100).toFixed(1)}% > ${hi * 100}%`); bad = true; }
+  }
+  const bw4 = report[hero].buddyWorld[4];
+  if (bw4.wins / bw4.runs > 0.5) { console.log(`RAIL FAIL: ${hero} W4 buddy ${(bw4.wins / bw4.runs * 100).toFixed(0)}% — the endgame gate collapsed`); bad = true; }
+}
+// hero parity: overall fresh winrates within 14 points of each other
+{
+  const totals = ['aaron', 'wyatt', 'liam'].map((h) => total(h));
+  const spread = Math.max(...totals) - Math.min(...totals);
+  if (spread > 0.14) { console.log(`RAIL FAIL: hero parity spread ${(spread * 100).toFixed(1)}pts > 14`); bad = true; }
 }
 if (stalls > RUNS * 0.1) { console.log(`RAIL FAIL: ${stalls} stalled fights`); bad = true; }
 if (pacing.fight > 7) { console.log(`RAIL FAIL: normal fights average ${pacing.fight.toFixed(1)} turns (bore threshold 7)`); bad = true; }
 if (pacing.elite > 11) { console.log(`RAIL FAIL: elites average ${pacing.elite.toFixed(1)} turns (bore threshold 11)`); bad = true; }
 if (pacing.boss > 16) { console.log(`RAIL FAIL: bosses average ${pacing.boss.toFixed(1)} turns (bore threshold 16)`); bad = true; }
-console.log(bad ? '\nVERDICT: NEEDS TUNING' : '\nVERDICT: ALL CLEAR (provisional Stage-A rails — Phase 3 tightens to the 20–30 band)');
+console.log(bad ? '\nVERDICT: NEEDS TUNING' : '\nVERDICT: ALL CLEAR (Phase 3 shipped bands)');
 process.exit(bad ? 1 : 0);

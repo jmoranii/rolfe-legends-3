@@ -24,33 +24,31 @@ export const WORLD_INFO = {
   4: { name: 'The Kinetic Sandbox', emoji: '🧲', time: 'night', duck: null }, // the Magnet Menace waits here
 };
 
-// Encounter pools per world. NOTE (build scaffolding): worlds 1–3 currently
-// borrow RL2's act pools while the World-of-Weirdos bestiary lands world by
-// world — each world's section below gets replaced with its real weirdo cast.
+// Encounter pools per world — the World of Weirdos casts (js/enemies.js).
 export const ENCOUNTERS = {
-  1: {
-    easy: [['gopher'], ['roly_poly', 'roly_poly'], ['crow'], ['mud_blob_m', 'mud_blob_s']],
-    hard: [['barn_spider'], ['magpie'], ['mouse_scrappy', 'mouse_zippy', 'mouse_pudge', 'mouse_whiskers'], ['puffball', 'puffball'], ['crow', 'roly_poly']],
-    elite: [['old_scarecrow'], ['ornery_ram'], ['scarecrow_post', 'scarecrow_post', 'scarecrow_post']],
-    boss: [['rogue_combine'], ['mud_king']],
+  1: { // The Crop Kingdom
+    easy: [['corn_colonel'], ['rolling_pumpkin', 'rolling_pumpkin'], ['angry_sprout'], ['compost_blob_m', 'compost_blob_s']],
+    hard: [['sticky_vine'], ['crow_thief'], ['weed_dandelion', 'weed_thistle', 'weed_burr', 'weed_clover'], ['puff_dandelion', 'puff_dandelion'], ['angry_sprout', 'rolling_pumpkin']],
+    elite: [['mega_melon'], ['giant_zucchini'], ['sprinkler_post', 'sprinkler_post', 'sprinkler_post']],
+    boss: [['boss_brownie']],
   },
-  2: {
-    easy: [['raccoon_bandit'], ['snapping_turtle'], ['thorny_bramble']],
-    hard: [['waltzing_weasel'], ['possum_defender', 'possum_healer'], ['raccoon_bandit', 'raccoon_bandit'], ['snapping_turtle', 'thorny_bramble']],
-    elite: [['porcupine'], ['fox', 'fox'], ['raccoon_ringleader']],
-    boss: [['raccoon_king']],
+  2: { // Critter Meadow
+    easy: [['sparkmouse', 'sparkmouse'], ['flame_pup'], ['leaf_turtle'], ['puffbunny', 'puffbunny']],
+    hard: [['mimic_moth'], ['bubble_frog'], ['snatchling'], ['sparkmouse', 'sparkmouse', 'sparkmouse'], ['flame_pup', 'puffbunny']],
+    elite: [['big_chonk'], ['queen_bee'], ['totem_triplets', 'totem_triplets', 'totem_triplets']],
+    boss: [['boss_diver']],
   },
-  3: {
-    easy: [['ball_lightning', 'ball_lightning', 'ball_lightning'], ['hail_cloud'], ['debris_tangle']],
-    hard: [['flooding_creek'], ['passing_squall'], ['hail_cloud', 'ball_lightning'], ['debris_tangle', 'hail_cloud']],
-    elite: [['thunderhead'], ['ghost_wind'], ['wind_funnel']],
-    boss: [['big_twister'], ['thunder', 'lightning']],
+  3: { // Bricktopia
+    easy: [['brick_biter'], ['sharp_brick'], ['brick_golem_m'], ['minifig_scrapper', 'minifig_ninja', 'minifig_knight', 'minifig_wizard']],
+    hard: [['instruction_golem'], ['wobble_tower'], ['sharp_brick', 'sharp_brick'], ['brick_golem_m', 'brick_pile'], ['brick_biter', 'minifig_knight']],
+    elite: [['crane_head'], ['ghost_piece'], ['master_builder']],
+    boss: [['boss_harmless']],
   },
-  4: {
-    easy: [['ball_lightning', 'ball_lightning', 'ball_lightning'], ['flooding_creek'], ['debris_tangle', 'hail_cloud']],
-    hard: [['passing_squall'], ['waltzing_weasel'], ['possum_defender', 'possum_healer'], ['hail_cloud', 'ball_lightning']],
-    elite: [['thunderhead'], ['ghost_wind'], ['wind_funnel']],
-    boss: [['big_twister']],
+  4: { // The Kinetic Sandbox
+    easy: [['sand_blob_m'], ['magnet_mite', 'magnet_mite', 'magnet_mite'], ['squish_ball'], ['glitter_storm']],
+    hard: [['sandworm'], ['static_cling'], ['play_dough_twin_a', 'play_dough_twin_b'], ['glitter_storm', 'magnet_mite']],
+    elite: [['sand_castle'], ['rake_fingers'], ['dust_bunny_mother']],
+    boss: [['sand_monster']],
   },
 };
 

@@ -52,7 +52,7 @@ function forceHand(state, ids) {
 
 // ---------- combat basics ----------
 {
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   eq(state.hero.energy, 3, 'starts with 3 energy');
   eq(state.hand.length, 5, 'draws 5');
   ok(state.enemies[0].intent, 'enemy announces intent');
@@ -67,7 +67,7 @@ function forceHand(state, ids) {
 }
 {
   // block + enemy attack + vulnerable
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   const e = state.enemies[0];
   forceHand(state, ['brace', 'tornado_slam']);
   C.playCard(state, state.hand[0]);
@@ -84,7 +84,7 @@ function forceHand(state, ids) {
 }
 {
   // poison ticks and decrements on enemy turn
-  const { state } = combatVs(['barn_spider'], { hero: 'wyatt' });
+  const { state } = combatVs(['sticky_vine'], { hero: 'wyatt' });
   const e = state.enemies[0];
   forceHand(state, ['itching_powder']);
   C.playCard(state, state.hand[0], e);
@@ -96,7 +96,7 @@ function forceHand(state, ids) {
 }
 {
   // block absorbs, expires next turn
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   state.enemies[0].intent = { name: 'Chomp', kind: 'attack', dmg: 11 };
   forceHand(state, ['brace', 'brace']);
   C.playCard(state, state.hand[0]);
@@ -112,7 +112,7 @@ function forceHand(state, ids) {
 for (const [id, def] of Object.entries(CARDS)) {
   if (def.unplayable) continue;
   for (const up of [false, true]) {
-    const { state } = combatVs(['gopher', 'crow'], { hero: def.hero === 'wyatt' ? 'wyatt' : 'aaron' });
+    const { state } = combatVs(['corn_colonel', 'angry_sprout'], { hero: def.hero === 'wyatt' ? 'wyatt' : 'aaron' });
     state.hero.energy = 99;
     forceHand(state, ['shove']); // ensure discard fodder for discard ops
     state.hand.push(makeCard(id, up));
@@ -126,7 +126,7 @@ for (const [id, def] of Object.entries(CARDS)) {
 
 // ---------- specific card mechanics ----------
 {
-  const { state } = combatVs(['old_scarecrow']);
+  const { state } = combatVs(['mega_melon']);
   const e = state.enemies[0];
   state.hero.strength = 2;
   forceHand(state, ['heavy_haul']);
@@ -135,7 +135,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(hp0 - e.hp, 14 + 2 * 3, 'Heavy Haul: strength ×3');
 }
 {
-  const { state } = combatVs(['gopher', 'crow']);
+  const { state } = combatVs(['corn_colonel', 'angry_sprout']);
   forceHand(state, ['tornado_spin']);
   state.hero.energy = 3;
   const hp0 = state.enemies[0].hp, hp1 = state.enemies[1].hp;
@@ -145,7 +145,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(hp1 - state.enemies[1].hp, 15, 'Tornado Spin 5×3 on enemy 2');
 }
 {
-  const { state } = combatVs(['old_scarecrow'], { hero: 'wyatt' });
+  const { state } = combatVs(['mega_melon'], { hero: 'wyatt' });
   const e = state.enemies[0];
   forceHand(state, ['kick', 'kick', 'bicycle_kick']);
   state.hero.energy = 9;
@@ -156,7 +156,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(hp0 - e.hp, 12, 'Bicycle Kick: 6 × 2 attacks played before it');
 }
 {
-  const { state } = combatVs(['gopher'], { hero: 'wyatt' });
+  const { state } = combatVs(['corn_colonel'], { hero: 'wyatt' });
   forceHand(state, ['juggling_show']);
   C.playCard(state, state.hand[0]);
   eq(state.hand.filter((c) => c.id === 'soccer_ball').length, 3, 'Juggling Show adds 3 Soccer Balls');
@@ -167,7 +167,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(state.exhaust.length, 1, 'Soccer Ball exhausts');
 }
 {
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   forceHand(state, ['all_out']);
   state.draw = ['shove', 'shove', 'shove', 'brace', 'brace'].map((id) => makeCard(id));
   const hp0 = state.hero.hp;
@@ -178,7 +178,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(state.exhaust.length, 1, 'All-Out Effort exhausts');
 }
 {
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   forceHand(state, ['tornado_form', 'fortify']);
   state.hero.energy = 6;
   C.playCard(state, state.hand[0]);
@@ -190,7 +190,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(state.hero.block, 12, 'Fortify keeps block');
 }
 {
-  const { state } = combatVs(['gopher'], { hero: 'wyatt' });
+  const { state } = combatVs(['corn_colonel'], { hero: 'wyatt' });
   forceHand(state, ['sleight_of_hand', 'kick']);
   C.playCard(state, state.hand[0]);
   state.enemies[0].intent = { name: 'x', kind: 'defend', block: 1 };
@@ -203,12 +203,12 @@ for (const [id, def] of Object.entries(CARDS)) {
   // innate: sneak_attack surfaces in opening hand
   const run = freshRun('wyatt', 9);
   run.deck.push(makeCard('sneak_attack'));
-  const state = C.startCombat(run, ['gopher'], makeRng(9));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(9));
   ok(findInHand(state, 'sneak_attack'), 'innate card in opening hand');
 }
 {
   // hailstone burns in hand; poison_ivy damages on draw
-  const { state } = combatVs(['gopher']);
+  const { state } = combatVs(['corn_colonel']);
   forceHand(state, ['hailstone']);
   state.enemies[0].intent = { name: 'x', kind: 'defend', block: 1 };
   const hp0 = state.hero.hp;
@@ -216,7 +216,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   ok(state.hero.hp <= hp0 - 2, 'hailstone burned 2 at end of turn');
   const run2 = freshRun('aaron', 3);
   run2.deck = [makeCard('poison_ivy'), makeCard('shove')];
-  const s2 = C.startCombat(run2, ['gopher'], makeRng(3));
+  const s2 = C.startCombat(run2, ['corn_colonel'], makeRng(3));
   ok(s2.hero.hp < s2.hero.maxHp, 'poison ivy damaged on draw');
   ok(!C.canPlay(s2, s2.hand.find((c) => c.id === 'poison_ivy')), 'curse unplayable');
 }
@@ -226,7 +226,7 @@ for (const [id, def] of Object.entries(CARDS)) {
   const run = freshRun('aaron', 5);
   run.relics.push('fence_post', 'lucky_horseshoe', 'skipping_stone', 'barbed_wire', 'grannys_thermos', 'barn_lantern');
   run.hp = 50;
-  const state = C.startCombat(run, ['gopher'], makeRng(5));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(5));
   eq(state.hero.block, 8, 'Fence Post: 8 block at combat start');
   eq(state.hero.strength, 1, 'Lucky Horseshoe +1 str');
   eq(state.hero.dexterity, 1, 'Skipping Stone +1 dex');
@@ -236,13 +236,13 @@ for (const [id, def] of Object.entries(CARDS)) {
 }
 {
   const run = freshRun('wyatt', 5); // head_start starter
-  const state = C.startCombat(run, ['gopher'], makeRng(5));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(5));
   eq(state.hand.length, 7, 'Head Start draws 2 extra turn 1');
 }
 {
   const run = freshRun('aaron', 5);
   run.relics.push('keys_tractor', 'old_quilt');
-  const state = C.startCombat(run, ['gopher'], makeRng(5));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(5));
   eq(state.hero.energy, 4, 'Keys to the Tractor +1 energy');
   state.enemies[0].intent = { name: 'x', kind: 'defend', block: 1 };
   C.endTurn(state);
@@ -252,7 +252,7 @@ for (const [id, def] of Object.entries(CARDS)) {
 {
   const run = freshRun('aaron', 5);
   run.relics.push('rally_cap');
-  const state = C.startCombat(run, ['gopher'], makeRng(5));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(5));
   state.hand = [];
   C.dealDamage(state, state.hero, 5, { isAttack: false });
   eq(state.hand.length, 3, 'Rally Cap drew 3 on first HP loss');
@@ -260,7 +260,7 @@ for (const [id, def] of Object.entries(CARDS)) {
 {
   const run = freshRun('aaron', 5);
   run.relics.push('hay_bale_toss', 'soccer_drills');
-  const state = C.startCombat(run, ['old_scarecrow'], makeRng(5));
+  const state = C.startCombat(run, ['mega_melon'], makeRng(5));
   forceHand(state, ['shove', 'shove', 'shove']);
   state.hero.energy = 9;
   const e = state.enemies[0];
@@ -274,30 +274,30 @@ for (const [id, def] of Object.entries(CARDS)) {
 
 // ---------- enemy behaviors ----------
 {
-  const { state } = combatVs(['roly_poly']);
+  const { state } = combatVs(['rolling_pumpkin']);
   const e = state.enemies[0];
   C.dealDamage(state, e, 3, { attacker: state.hero });
   eq(e.block, 6, 'roly-poly curls for 6 block on first hit');
 }
 {
-  const { state } = combatVs(['mud_blob_m']);
+  const { state } = combatVs(['compost_blob_m']);
   const e = state.enemies[0];
   C.dealDamage(state, e, Math.ceil(e.maxHp / 2) + 1, { attacker: state.hero });
   eq(state.enemies.length, 2, 'mud blob split spawned a blip');
 }
 {
-  const { state } = combatVs(['magpie']);
+  const { state } = combatVs(['crow_thief']);
   const e = state.enemies[0];
   for (let i = 0; i < 6 && !state.over; i++) { state.hand = []; C.endTurn(state); }
-  ok(e.fled || state.over, 'magpie eventually flees (or fight ended)');
+  ok(e.fled || state.over, 'crow_thief eventually flees (or fight ended)');
 }
 {
-  const { state, run } = combatVs(['magpie']);
+  const { state, run } = combatVs(['crow_thief']);
   const e = state.enemies[0];
   e.intent = { name: 'Snatch!', kind: 'attack', dmg: 10, fn: (st, en) => { en.stolen += 15; } };
   state.hand = [];
   C.endTurn(state);
-  eq(e.stolen, 15, 'magpie stole gold');
+  eq(e.stolen, 15, 'crow_thief stole gold');
   e.fled = true;
   C.checkCombatEnd(state);
   ok(state.over && state.won, 'combat won when thief flees');
@@ -309,31 +309,31 @@ for (const [id, def] of Object.entries(CARDS)) {
 // ---------- Big Breakfast reports its trigger for the reward banner (James, Thu 2026-08-07) ----------
 {
   const run = R.newRun('aaron', 77);
-  const state = C.startCombat(run, ['gopher'], makeRng(77));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(77));
   state.hero.hp = 40;
   const res = R.applyCombatResult(run, state);
   eq(res.breakfastHeal, 8, 'Big Breakfast reports +8 after the fight');
   eq(run.hp, 48, 'pancakes actually healed');
   const run2 = R.newRun('aaron', 77);
-  const state2 = C.startCombat(run2, ['gopher'], makeRng(77));
+  const state2 = C.startCombat(run2, ['corn_colonel'], makeRng(77));
   const res2 = R.applyCombatResult(run2, state2);
   eq(res2.breakfastHeal, 0, 'full HP: reports 0 (banner says stuffed), no overheal');
   eq(run2.hp, run2.maxHp, 'hp stays clamped at max');
   const run3 = R.newRun('wyatt', 77);
-  const state3 = C.startCombat(run3, ['gopher'], makeRng(77));
+  const state3 = C.startCombat(run3, ['corn_colonel'], makeRng(77));
   eq(R.applyCombatResult(run3, state3).breakfastHeal, null, 'no pancakes → no banner');
 }
 {
-  const { state } = combatVs(['old_scarecrow']);
+  const { state } = combatVs(['mega_melon']);
   const e = state.enemies[0];
-  eq(e.intent.kind, 'sleep', 'scarecrow starts dormant');
+  eq(e.intent.kind, 'sleep', 'sprinkler/melon starts dormant');
   C.dealDamage(state, e, 5, { attacker: state.hero });
   state.hand = [];
   C.endTurn(state);
-  ok(e.intent.kind !== 'sleep', 'scarecrow woke after damage');
+  ok(e.intent.kind !== 'sleep', 'sprinkler/melon woke after damage');
 }
 {
-  const { state } = combatVs(['ornery_ram']);
+  const { state } = combatVs(['giant_zucchini']);
   const e = state.enemies[0];
   state.hand = [];
   C.endTurn(state); // ram snorts → enraged
@@ -343,29 +343,14 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(e.strength, str0 + 2, 'ram enrages when hero plays a skill');
 }
 {
-  const { state } = combatVs(['scarecrow_post']);
+  const { state } = combatVs(['sprinkler_post']);
   state.enemies[0].intent = { name: 'Straw Toss', kind: 'debuff', fn: (st) => C.addCardToCombat(st, 'straw', 2, 'discard') };
   state.hand = [];
   C.endTurn(state);
-  eq(state.discard.filter((c) => c.id === 'straw').length, 2, 'scarecrow post shoved 2 straw');
+  eq(state.discard.filter((c) => c.id === 'straw').length, 2, 'sprinkler/melon post shoved 2 straw');
 }
 {
-  const { state } = combatVs(['rogue_combine']);
-  const e = state.enemies[0];
-  C.dealDamage(state, e, 40, { attacker: state.hero });
-  eq(e.state.mode, 'hunker', 'combine shifts to defensive mode after 35 damage');
-  eq(e.thorns, 3, 'combine thorns up in hunker mode');
-}
-{
-  const { state } = combatVs(['raccoon_king']);
-  const e = state.enemies[0];
-  e.hp = Math.floor(e.maxHp / 2) - 5;
-  state.hand = [];
-  C.endTurn(state);
-  ok(e.state.enraged, 'raccoon king enrages at half');
-}
-{
-  const { state } = combatVs(['ball_lightning', 'ball_lightning', 'ball_lightning']);
+  const { state } = combatVs(['magnet_mite', 'magnet_mite', 'magnet_mite']);
   const [a, b] = state.enemies;
   C.dealDamage(state, a, 999, { attacker: state.hero });
   ok(a.hp <= 0 && !state.over, 'one ball lightning down, fight continues');
@@ -375,17 +360,17 @@ for (const [id, def] of Object.entries(CARDS)) {
   ok(a.hp > 0, 'ball lightning revived');
 }
 {
-  const { state } = combatVs(['ball_lightning', 'ball_lightning']);
+  const { state } = combatVs(['magnet_mite', 'magnet_mite']);
   for (const e of [...state.enemies]) C.dealDamage(state, e, 999, { attacker: state.hero });
   ok(state.over && state.won, 'killing all ball lightnings at once wins');
 }
 {
-  const { state } = combatVs(['passing_squall']);
-  for (let i = 0; i < 7 && !state.over; i++) { state.hand = []; state.hero.hp = 999; state.hero.maxHp = 999; C.endTurn(state); }
-  ok(state.over && state.won, 'squall blows over → survival win');
+  const { state } = combatVs(['dust_bunny']);
+  for (let i = 0; i < 4 && !state.over; i++) { state.hand = []; state.hero.hp = 999; state.hero.maxHp = 999; C.endTurn(state); }
+  ok(state.over && state.won, 'the dust bunny drifts away on its own → survival win');
 }
 {
-  const { state } = combatVs(['waltzing_weasel'], { hero: 'wyatt' });
+  const { state } = combatVs(['mimic_moth'], { hero: 'wyatt' });
   ok(state.flags.confused, 'weasel confusion active');
   C.drawCards(state, 3);
   const overridden = state.hand.some((c) => state.costOverride[c.uid] != null);
@@ -394,33 +379,28 @@ for (const [id, def] of Object.entries(CARDS)) {
   ok(!state.flags.confused, 'confusion clears on weasel death');
 }
 {
-  const { state } = combatVs(['fox', 'fox']);
-  state.hand = [];
-  C.endTurn(state);
-  ok(state.discard.some((c) => c.id === 'scraped_knee'), 'fox shoved a scraped knee');
+  // The Instructions: STEP 47 leaves you Weak (their whole legal authority)
+  const { state } = combatVs(['instruction_golem']);
+  const g = state.enemies[0];
+  let sawStep = false;
+  for (let i = 0; i < 8 && !sawStep; i++) {
+    const mv = g.def.nextMove(g, state, state.rng);
+    if (mv.name.includes('STEP 47')) { mv.fn(state); sawStep = true; }
+  }
+  ok(sawStep && state.hero.weak >= 2, 'STEP 47: YOU LOSE (Weak applied)');
 }
 {
-  const { state } = combatVs(['flooding_creek']);
+  const { state } = combatVs(['sandworm']);
   state.hand = [];
   C.endTurn(state); // creek sets constrict
-  eq(state.flags.constrict, 5, 'creek constricts');
+  eq(state.flags.constrict, 5, 'the sandworm squeezes (5/turn)');
   const hp0 = state.hero.hp;
   state.hand = [];
   C.endTurn(state);
   ok(state.hero.hp < hp0, 'constrict dealt damage at turn start');
 }
 {
-  const { state } = combatVs(['big_twister']);
-  const e = state.enemies[0];
-  C.dealDamage(state, e, 999, { attacker: state.hero });
-  ok(!state.over, 'twister phase 1 death does not end fight');
-  eq(e.hp, 200, 'twister re-formed with 200 HP');
-  eq(e.state.phase, 2, 'twister in phase 2');
-  C.dealDamage(state, e, 9999, { attacker: state.hero });
-  ok(state.over && state.won, 'twister phase 2 death wins');
-}
-{
-  const { state } = combatVs(['ghost_wind']);
+  const { state } = combatVs(['ghost_piece']);
   const e = state.enemies[0];
   e.intangible = true;
   const hp0 = e.hp;
@@ -428,24 +408,24 @@ for (const [id, def] of Object.entries(CARDS)) {
   eq(hp0 - e.hp, 1, 'intangible caps damage at 1');
 }
 {
-  const { state } = combatVs(['thunderhead']);
+  const { state } = combatVs(['crane_head']);
   const e = state.enemies[0];
   for (let i = 0; i < 4; i++) { state.hand = []; state.hero.hp = 500; state.hero.maxHp = 500; C.endTurn(state); }
-  ok(e.intent.name.includes('THUNDERSTRIKE') || e.state.count === 0, 'thunderhead counts down to the big strike');
+  ok(e.intent.name.includes('THUNDERSTRIKE') || e.state.count === 0, 'crane_head counts down to the big strike');
 }
 {
-  const { state } = combatVs(['wind_funnel']);
+  const { state } = combatVs(['dust_bunny_mother']);
   state.enemies[0].intent = state.enemies[0].def.nextMove(state.enemies[0], state, makeRng(1));
   let spawned = false;
   for (let i = 0; i < 6 && !spawned; i++) {
     state.hand = []; state.hero.hp = 500; state.hero.maxHp = 500;
     C.endTurn(state);
-    spawned = state.enemies.some((e) => e.key === 'dust_devil');
+    spawned = state.enemies.some((e) => e.key === 'dust_bunny');
   }
   ok(spawned, 'wind funnel summons dust devils');
 }
 {
-  const { state } = combatVs(['possum_defender', 'possum_healer']);
+  const { state } = combatVs(['play_dough_twin_a', 'play_dough_twin_b']);
   const [big, little] = state.enemies;
   big.hp = 20;
   little.intent = { name: 'Nuzzle (heal)', kind: 'buff', fn: () => { big.hp = Math.min(big.maxHp, big.hp + 12); } };
@@ -471,13 +451,13 @@ for (const key of Object.keys(ENEMIES)) {
   const run = freshRun('liam', 200);
   eq(run.deck.length, 10, 'liam starter deck 10');
   eq(run.relics[0], 'diaper_bag', 'liam starter relic');
-  const state = C.startCombat(run, ['gopher'], makeRng(200));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(200));
   eq(state.hero.orbs.length, 1, 'Diaper Bag floats a diaper at combat start');
   eq(state.hero.orbs[0].type, 'stinky', 'and it is Stinky');
 }
 {
   // stinky passive + evoke, focus scaling
-  const { state } = combatVs(['old_scarecrow'], { hero: 'liam', seed: 201 });
+  const { state } = combatVs(['mega_melon'], { hero: 'liam', seed: 201 });
   state.hero.orbs = [];
   const e = state.enemies[0];
   forceHand(state, ['change_it']);
@@ -498,7 +478,7 @@ for (const key of Object.keys(ENEMIES)) {
 }
 {
   // fresh passive/evoke; blowout growth + weakest-target evoke; snack energy
-  const { state } = combatVs(['gopher', 'old_scarecrow'], { hero: 'liam', seed: 202 });
+  const { state } = combatVs(['corn_colonel', 'mega_melon'], { hero: 'liam', seed: 202 });
   state.hero.orbs = [];
   forceHand(state, ['sippy_cup', 'uh_oh', 'snacks']);
   state.hero.energy = 9;
@@ -523,7 +503,7 @@ for (const key of Object.keys(ENEMIES)) {
 }
 {
   // auto-evoke when slots full; More Diapers! raises the cap
-  const { state } = combatVs(['old_scarecrow'], { hero: 'liam', seed: 203 });
+  const { state } = combatVs(['mega_melon'], { hero: 'liam', seed: 203 });
   state.hero.orbs = [];
   C.channelOrb(state, 'fresh'); C.channelOrb(state, 'fresh'); C.channelOrb(state, 'fresh');
   state.hero.block = 0;
@@ -537,7 +517,7 @@ for (const key of Object.keys(ENEMIES)) {
 }
 {
   // uppies re-channels; throw_food scales with orbs; maximum stink hits all
-  const { state } = combatVs(['gopher', 'crow'], { hero: 'liam', seed: 204 });
+  const { state } = combatVs(['corn_colonel', 'angry_sprout'], { hero: 'liam', seed: 204 });
   state.hero.orbs = [];
   C.channelOrb(state, 'snack');
   forceHand(state, ['uppies']);
@@ -563,7 +543,7 @@ for (const key of Object.keys(ENEMIES)) {
 }
 {
   // birthday boy scales giggle power
-  const { state } = combatVs(['old_scarecrow'], { hero: 'liam', seed: 205 });
+  const { state } = combatVs(['mega_melon'], { hero: 'liam', seed: 205 });
   forceHand(state, ['birthday_boy']);
   state.hero.energy = 3;
   C.playCard(state, state.hand[0]);
@@ -594,15 +574,15 @@ for (const key of Object.keys(ENEMIES)) {
 
 // ---------- roly-poly uncurls once the curl is spent (James, Mon 2026-08-04) ----------
 {
-  const { state } = combatVs(['roly_poly']);
+  const { state } = combatVs(['rolling_pumpkin']);
   const e = state.enemies[0];
   C.dealDamage(state, e, 1, { attacker: state.hero });
-  eq(e.artKey, 'roly_poly_curled', 'first hit: he curls (art follows)');
+  eq(e.artKey, 'rolling_pumpkin_curled', 'first hit: he curls (art follows)');
   ok(e.block >= 5, 'the curl granted its Block');
   state.hand = [];
   C.endTurn(state); // his turn: block zeroes at turn start, then he acts → uncurls at re-intent
-  eq(e.artKey, 'roly_poly', 'curl spent: the art unrolls');
-  eq(e.name, 'Roly-Poly', 'name unrolls with it');
+  eq(e.artKey, 'rolling_pumpkin', 'curl spent: the art unrolls');
+  eq(e.name, 'Rolling Pumpkin', 'name un-hunkers with it');
   const b0 = e.block;
   C.dealDamage(state, e, 1, { attacker: state.hero });
   eq(e.block, b0, 'the trick stays used up — no second curl');
@@ -611,7 +591,7 @@ for (const key of Object.keys(ENEMIES)) {
 // ---------- poison pierces Block (StS "HP loss" rule — James, Sun 2026-08-03) ----------
 {
   // the canonical case: the Snapping Turtle's persistent plating used to eat poison
-  const { state } = combatVs(['snapping_turtle'], { hero: 'wyatt' });
+  const { state } = combatVs(['leaf_turtle'], { hero: 'wyatt' });
   const e = state.enemies[0];
   e.poison = 5; e.block = 10; e.block_persist = true;
   const hp0 = e.hp;
@@ -620,7 +600,7 @@ for (const key of Object.keys(ENEMIES)) {
   eq(hp0 - e.hp, 5, 'poison bites straight through the shell');
   ok(e.block >= 10, 'the plating is untouched by poison');
   // All-Out Effort's self-cost is HP loss too — the hero's own Block never eats it
-  const { state: s2 } = combatVs(['gopher']);
+  const { state: s2 } = combatVs(['corn_colonel']);
   forceHand(s2, ['all_out']);
   s2.hero.block = 10;
   const h0 = s2.hero.hp;
@@ -645,14 +625,14 @@ for (const key of Object.keys(ENEMIES)) {
 // ---------- death feel + event relic reveals (James's round, Sun 2026-08-02) ----------
 {
   // the culprit is recorded for the defeat screen's "taken down by…" chip
-  const { state } = combatVs(['old_scarecrow']);
+  const { state } = combatVs(['mega_melon']);
   C.dealDamage(state, state.hero, 999, { attacker: state.enemies[0] });
   C.checkCombatEnd(state);
   ok(state.over && !state.won, 'hero death ends the fight');
-  eq(state.killedBy.name, 'Old Scarecrow', 'killer enemy recorded');
+  eq(state.killedBy.name, 'The Mega Melon', 'killer enemy recorded');
   ok(state.killedBy.artKey !== undefined, 'killer carries its art key');
   eq(state.hero.hp, 0, 'overkill floors at 0 — no negative hearts');
-  const { state: s2 } = combatVs(['gopher']);
+  const { state: s2 } = combatVs(['corn_colonel']);
   C.dealDamage(s2, s2.hero, 999, { isAttack: false, src: 'thorns' });
   eq(s2.killedBy.src, 'thorns', 'src-only death recorded for the label map');
 }
@@ -705,7 +685,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
 {
   // Body Slam: damage equals current Block (Strength still applies on top)
   const run = freshRun('aaron', 31);
-  const state = C.startCombat(run, ['flooding_creek'], makeRng(31));
+  const state = C.startCombat(run, ['sandworm'], makeRng(31));
   state.hero.block = 12;
   forceHand(state, ['belly_flop']);
   const e = state.enemies[0];
@@ -723,7 +703,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
 {
   // Claw: every play makes ALL copies stronger, fight-scoped
   const run = freshRun('liam', 32);
-  const state = C.startCombat(run, ['flooding_creek'], makeRng(32));
+  const state = C.startCombat(run, ['sandworm'], makeRng(32));
   forceHand(state, ['sticky_hands', 'sticky_hands', 'sticky_hands']);
   const e = state.enemies[0];
   let hp = e.hp;
@@ -735,7 +715,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   hp = e.hp;
   C.playCard(state, state.hand[0], e);
   eq(hp - e.hp, 8, 'third play +4 — the whole family scales');
-  const s2 = C.startCombat(run, ['gopher'], makeRng(33));
+  const s2 = C.startCombat(run, ['corn_colonel'], makeRng(33));
   ok(!s2.grown.sticky_hands, 'stickiness resets between fights');
 }
 {
@@ -759,53 +739,108 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(!R.restStore(solo, solo.deck[0].uid), 'never strands a kid with an empty deck');
 }
 
-// ---------- alternate bosses ----------
+// ---------- the duck bosses + THE MAGNET MENACE (the boys' finale, as designed) ----------
 {
-  // Mud King splits into two mediums at half HP (Slime Boss)
-  const { state } = combatVs(['mud_king']);
-  const king = state.enemies[0];
-  C.dealDamage(state, king, Math.ceil(king.maxHp / 2) + 1, { attacker: state.hero });
-  ok(king.gone, 'Mud King steps aside when split');
-  const blobs = state.enemies.filter((e) => e.key === 'mud_blob_m');
-  eq(blobs.length, 2, 'Mud King splits into two Mud Blobs');
-  ok(blobs.every((b) => b.hp === blobs[0].hp && b.hp <= 78), 'split blobs inherit his remaining HP');
-  ok(!state.over, 'fight continues vs the blobs');
-  for (const b of blobs) C.dealDamage(state, b, 999, { attacker: state.hero });
-  ok(state.over && state.won, 'killing both blobs wins');
+  // Brownie: Champ chassis — Royal Duck Tantrum at half clears debuffs + strengthens
+  const { state } = combatVs(['boss_brownie']);
+  const b = state.enemies[0];
+  C.applyStatus(state, b, 'weak', 2);
+  C.dealDamage(state, b, Math.ceil(b.maxHp / 2) + 1, { attacker: state.hero, pierce: true });
+  const tantrum = b.def.nextMove(b, state, state.rng);
+  ok(tantrum.name.includes('TANTRUM'), 'Brownie tantrums at half');
+  tantrum.fn(state, b);
+  ok(b.weak === 0 && b.strength >= 3, 'tantrum shakes off debuffs and strengthens');
 }
 {
-  // Thunder buffs the pair, Lightning shields the pair (Donu & Deca)
-  const { state } = combatVs(['thunder', 'lightning']);
-  const [thunder, lightning] = state.enemies;
-  thunder.state.i = 0; // → BOOM
-  thunder.intent = thunder.def.nextMove(thunder, state, state.rng);
-  thunder.intent.fn(state, thunder);
-  ok(thunder.strength === 2 && lightning.strength === 2, 'Thunder empowers BOTH');
-  lightning.state.i = 1; // → Static Shield
-  const li = lightning.def.nextMove(lightning, state, state.rng);
-  li.fn(state, lightning);
-  ok(thunder.block === 11 && lightning.block === 11, 'Lightning shields BOTH');
+  // Diver: dive bombs GROW — every 4th move, one more hit each time
+  const { state } = combatVs(['boss_diver']);
+  const d = state.enemies[0];
+  let dives = [];
+  for (let i = 0; i < 12; i++) {
+    const mv = d.def.nextMove(d, state, state.rng);
+    if (mv.name.includes('DIVE BOMB')) dives.push(mv.times);
+  }
+  ok(dives.length >= 2 && dives[1] === dives[0] + 1, `Diver's dive bombs grow (${dives.join(',')})`);
 }
 {
-  // boss pools contain the alternates
-  ok(R.ENCOUNTERS[1].boss.some((b) => b.includes('mud_king')), 'act 1 boss pool has Mud King');
-  ok(R.ENCOUNTERS[3].boss.some((b) => b.includes('thunder') && b.includes('lightning')), 'act 3 boss pool has the pair');
+  // Harmless: dormant menace start; wakes on damage; every 4th move = intangible flicker
+  const { state } = combatVs(['boss_harmless']);
+  const h = state.enemies[0];
+  eq(h.intent.kind, 'sleep', 'Harmless stands there. Harmlessly.');
+  C.dealDamage(state, h, 10, { attacker: state.hero });
+  const wake = h.def.nextMove(h, state, state.rng);
+  ok(wake.name.includes('HARMLESS'), 'she is NOT harmless once woken');
+  let flickers = 0;
+  for (let i = 0; i < 8; i++) { const mv = h.def.nextMove(h, state, state.rng); if (mv.name.includes('Flicker')) flickers++; }
+  ok(flickers === 2 && h.def, 'black-feather flicker every 4th turn');
+}
+{
+  // THE KINETIC SAND MONSTER — the boys' design, mechanic by mechanic
+  const { state } = combatVs(['sand_monster']);
+  const m = state.enemies[0];
+  // limbs tear loose on the cadence
+  let summoned = null;
+  for (let i = 0; i < 4 && !summoned; i++) {
+    const mv = m.def.nextMove(m, state, state.rng);
+    if (mv.kind === 'summon') { mv.fn(state); summoned = true; }
+  }
+  ok(summoned, 'a limb tears loose');
+  const limb = state.enemies.find((e) => e.key === 'sand_limb');
+  ok(limb, 'the limb fights as its own enemy');
+  // Aaron's rule: a beaten limb sinks back in — the body drinks it as armor
+  const blockBefore = m.block;
+  C.dealDamage(state, limb, 999, { attacker: state.hero });
+  ok(m.block >= blockBefore + 8, 'beaten limb sinks back into the body as armor');
+  // Wyatt's rule: 50 cumulative damage sheds ALL the sand → THE MAGNET, helpless, ~100 HP
+  C.dealDamage(state, m, 30, { attacker: state.hero, pierce: true });
+  ok(!m.state.shed, 'sand holds below 50');
+  C.dealDamage(state, m, 25, { attacker: state.hero, pierce: true });
+  ok(m.state.shed, '50 total damage sheds the sand');
+  eq(m.name, 'THE MAGNET', 'what is underneath: THE MAGNET');
+  eq(m.hp, 100, 'the magnet has 100 health (the boys were specific)');
+  eq(m.intent.kind, 'sleep', 'the magnet lies HELPLESS');
+  const first = m.def.nextMove(m, state, state.rng);
+  eq(first.kind, 'sleep', 'helpless for exactly one turn');
+  const windup = m.def.nextMove(m, state, state.rng);
+  ok(windup.name.includes('MAGNETIZING'), 'then the windup telegraphs');
+  const throwMv = m.def.nextMove(m, state, state.rng);
+  eq(throwMv.dmg, 50, 'MAGNET THROW hits for FIFTY (they really wanted fifty to work)');
+  // beat the magnet, beat the game
+  C.dealDamage(state, m, 999, { attacker: state.hero, pierce: true });
+  ok(state.over && state.won, 'defeating the magnet wins the fight');
+}
+{
+  // squish ball previews the stagger mechanic (break its squish → helpless turn)
+  const { state } = combatVs(['squish_ball']);
+  const s2 = state.enemies[0];
+  C.dealDamage(state, s2, 5, { attacker: state.hero });
+  ok(s2.block >= 9, 'squish ball squishes up armor on first hit');
+  s2.block = 1;
+  C.dealDamage(state, s2, 3, { attacker: state.hero });
+  ok(s2.state.staggered || s2.intent.kind === 'sleep', 'broken squish → helpless (the Magnet preview)');
+}
+{
+  // every world's boss pool points at its duck (or the monster)
+  ok(R.ENCOUNTERS[1].boss.some((b) => b.includes('boss_brownie')), 'world 1: Brownie rules the crops');
+  ok(R.ENCOUNTERS[2].boss.some((b) => b.includes('boss_diver')), 'world 2: Diver guards the pond');
+  ok(R.ENCOUNTERS[3].boss.some((b) => b.includes('boss_harmless')), 'world 3: Harmless is NOT');
+  ok(R.ENCOUNTERS[4].boss.some((b) => b.includes('sand_monster')), 'world 4: the Kinetic Sand Monster');
 }
 
 // ---------- tick-damage attribution (UI reads these to explain WHY) ----------
 {
-  const { state } = combatVs(['gopher'], { hero: 'wyatt' });
+  const { state } = combatVs(['corn_colonel'], { hero: 'wyatt' });
   const e = state.enemies[0];
   C.applyStatus(state, e, 'poison', 5);
   state.log.length = 0;
   C.endTurn(state);
   ok(state.log.some((ev) => ev.t === 'dmg' && ev.src === 'poison'), 'poison ticks carry src=poison');
-  const { state: s2 } = combatVs(['crow'], { hero: 'liam' });
+  const { state: s2 } = combatVs(['angry_sprout'], { hero: 'liam' });
   C.channelOrb(s2, 'stinky');
   s2.log.length = 0;
   C.endTurn(s2);
   ok(s2.log.some((ev) => (ev.t === 'dmg' || ev.t === 'blocked') && ev.src === 'stinky'), 'stinky zaps carry src=stinky');
-  const { state: s3 } = combatVs(['barn_spider']);
+  const { state: s3 } = combatVs(['sticky_vine']);
   s3.hero.thorns = 3;
   s3.enemies[0].intent = { name: 'Bite', kind: 'attack', dmg: 5 };
   s3.log.length = 0;
@@ -815,7 +850,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
 
 // ---------- steppable enemy phase (UI sequencing = endTurn semantics) ----------
 {
-  const { state } = combatVs(['gopher', 'crow'], { seed: 55 });
+  const { state } = combatVs(['corn_colonel', 'angry_sprout'], { seed: 55 });
   ok(state.phase === 'hero', 'combat starts in hero phase');
   ok(C.beginEnemyPhase(state), 'enemy phase begins');
   eq(state.phase, 'enemy', 'phase flips to enemy');
@@ -830,7 +865,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(state.turn, 2, 'next hero turn began');
   ok(state.hand.length > 0, 'new hand drawn');
   // endTurn (sync) drives the same machinery
-  const { state: s2 } = combatVs(['gopher'], { seed: 56 });
+  const { state: s2 } = combatVs(['corn_colonel'], { seed: 56 });
   C.endTurn(s2);
   eq(s2.turn, 2, 'endTurn advances to turn 2');
   eq(s2.phase, 'hero', 'endTurn leaves hero phase');
@@ -967,7 +1002,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(run3.deck.some((c) => c.id === 'duck'), 'duck friend joins the deck');
   // the duck pulls his weight: draw 2 on play (James's buff, Wed 2026-08-06)
   {
-    const { state } = combatVs(['old_scarecrow']);
+    const { state } = combatVs(['mega_melon']);
     forceHand(state, ['duck']);
     state.draw = ['shove', 'shove', 'brace'].map((id) => makeCard(id));
     C.playCard(state, state.hand[0], state.enemies[0]);
@@ -987,7 +1022,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
 {
   // big breakfast post-fight heal
   const run = freshRun('aaron', 81);
-  const state = C.startCombat(run, ['gopher'], makeRng(81));
+  const state = C.startCombat(run, ['corn_colonel'], makeRng(81));
   state.hero.hp = 50;
   C.dealDamage(state, state.enemies[0], 999, { attacker: state.hero });
   R.applyCombatResult(run, state);
@@ -1126,7 +1161,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   // companion cadences in combat
   const sim = (petId, turns) => {
     const run = R.newRun('aaron', 11, { pet: petId });
-    const st = C.startCombat(run, ['flooding_creek'], makeRng(11));
+    const st = C.startCombat(run, ['sandworm'], makeRng(11));
     for (let t = 1; t < turns; t++) { C.beginEnemyPhase(st); while (st.phase === 'enemy' && !st.over) C.stepEnemyAction(st); }
     return st;
   };
@@ -1170,17 +1205,17 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   // new engine ops: heal (Egg), gold (Swipe), pierce (UFO Beam ignores block)
   {
     const run = R.newRun('aaron', 5, { pet: 'chicken' });
-    const st = C.startCombat(run, ['flooding_creek'], makeRng(5));
+    const st = C.startCombat(run, ['sandworm'], makeRng(5));
     st.hero.hp = 10;
     forceHand(st, ['egg']);
     C.playCard(st, st.hand[0], null);
     ok(st.hero.hp === 12, 'Egg heals 2');
     ok(st.exhaust.some((c) => c.id === 'egg'), 'Egg exhausts');
-    const st2 = C.startCombat(R.newRun('aaron', 5, { pet: 'raccoon' }), ['flooding_creek'], makeRng(5));
+    const st2 = C.startCombat(R.newRun('aaron', 5, { pet: 'raccoon' }), ['sandworm'], makeRng(5));
     forceHand(st2, ['five_finger_swipe']);
     C.playCard(st2, st2.hand[0], st2.enemies[0]);
     ok(st2.goldRecovered >= 5, 'Swipe pockets gold');
-    const st3 = C.startCombat(R.newRun('aaron', 5, { pet: 'alien' }), ['flooding_creek'], makeRng(5));
+    const st3 = C.startCombat(R.newRun('aaron', 5, { pet: 'alien' }), ['sandworm'], makeRng(5));
     st3.enemies[0].block = 50;
     const hp0 = st3.enemies[0].hp;
     forceHand(st3, ['ufo_beam']);
@@ -1192,7 +1227,7 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   {
     const seen = new Set();
     for (let s = 0; s < 60; s++) {
-      const st = C.startCombat(R.newRun('aaron', s, { pet: 'brownie' }), ['flooding_creek'], makeRng(s));
+      const st = C.startCombat(R.newRun('aaron', s, { pet: 'brownie' }), ['sandworm'], makeRng(s));
       st.hero.hp = Math.max(1, st.hero.hp - 10);
       forceHand(st, ['mystery_waddle']);
       C.playCard(st, st.hand[0], null);

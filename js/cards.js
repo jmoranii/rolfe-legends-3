@@ -12,13 +12,13 @@ export const HEROES = {
     starter: ['shove', 'shove', 'shove', 'shove', 'shove', 'brace', 'brace', 'brace', 'brace', 'tornado_slam'],
   },
   wyatt: {
-    id: 'wyatt', name: 'Wyatt the Speedy', emoji: '⚡', hp: 51, // StS Silent 70; hard-mode dial (his StS-true kit overperforms vs the kid-tilted bestiary; 54→51 after full-heal + duck buffs pushed him to 39%)
+    id: 'wyatt', name: 'Wyatt the Speedy', emoji: '⚡', hp: 64, // StS Silent 70; RL3 dial — vs the weirdo bestiary his kit UNDERperforms (RL2's 51 was that game's nerf), 51→64 for parity
     relic: 'head_start',
     tagline: 'Fastest feet in Rolfe. Blink and you miss him.',
     starter: ['kick', 'kick', 'kick', 'kick', 'kick', 'dodge', 'dodge', 'dodge', 'dodge', 'dodge', 'nutmeg', 'quick_feet'],
   },
   liam: { // SECRET hero — unlocked via the title-screen Goldie egg. Defect spine.
-    id: 'liam', name: 'Liam the Little', emoji: '🍼', hp: 76, // was 78 (pre-hard-mode compensation buff, partially reverted)
+    id: 'liam', name: 'Liam the Little', emoji: '🍼', hp: 62, // RL3 dial: his fresh-wall comes online fast in 12-floor worlds; 76→62 for parity
     relic: 'diaper_bag', secret: true,
     tagline: 'Two and a half feet of chaos. Diapers orbit him. Nobody knows why.',
     starter: ['bonk', 'bonk', 'bonk', 'bonk', 'peekaboo', 'peekaboo', 'peekaboo', 'peekaboo', 'change_it', 'double_trouble'],

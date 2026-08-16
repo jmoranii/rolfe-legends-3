@@ -202,8 +202,9 @@ function actArtUrls(act) {
   }
   // alternate forms aren't in the encounter pools, but they appear mid-fight — so
   // prefetch them too, or the transformation stalls waiting on an uncached image
-  if (act === 1) { keys.add('roly_poly_curled'); keys.add('rogue_combine_hunker'); keys.add('mud_blob_s'); }
-  if (act === 3) keys.add('big_twister_p2');
+  if (act === 1) { keys.add('rolling_pumpkin_curled'); keys.add('compost_blob_s'); }
+  if (act === 3) keys.add('brick_pile');
+  if (act === 4) { keys.add('sand_blob_s'); keys.add('magnet_core'); }
   const urls = [...keys].map((k) => `assets/enemies/${k}.jpg`);
   urls.push(`assets/backgrounds/battle${act}.jpg`, `assets/backgrounds/map${act}.jpg`);
   return urls;
@@ -1060,7 +1061,7 @@ function splitInFx(enemyEl) {
 // between renders; now it gets one last render wearing .fleeing.
 const fleeSeen = new WeakSet();
 function fleeLine(e) {
-  if (e.key === 'passing_squall') return '🌬️ IT BLEW OVER!';
+  if (e.key === 'dust_bunny') return '💨 It drifted away!';
   if (e.key === 'dust_devil') return '💨 poof';
   if (e.stolen) return `💨 It got away with your 💰${e.stolen}!`;
   return '💨 It got away!';
@@ -1073,7 +1074,7 @@ function fleeOutEl(e) {
   d.insertAdjacentHTML('beforeend', `<div class="nm">${e.name}</div>
     <div class="hpbar"><div style="width:${Math.max(0, e.hp / e.maxHp * 100)}%"></div></div>
     <div class="hpnum">❤️ ${Math.max(0, e.hp)}/${e.maxHp}</div>`);
-  const big = e.key === 'passing_squall'; // the act-3 outlast fight earns the full gale
+  const big = false; // no outlast-storm fight in RL3; thieves still flee small
   requestAnimationFrame(() => {
     floaty(d, fleeLine(e), big ? 'formshift' : 'windy');
     windScatter(d, big ? 10 : 4);
@@ -1286,7 +1287,7 @@ function animateDiffs(s, enemyEls, heroEl) {
     if ((e.strength || 0) > p.strength) {
       const gain = (e.strength || 0) - p.strength;
       floaty(elx, `💪+${gain}`, 'formshift'); // rallies, speeches, Inhale, FURY
-      if (e.key === 'raccoon_king' && gain >= 4) {
+      if ((e.key === 'boss_brownie' || e.key === 'boss_harmless') && gain >= 2) {
         elx.classList.add('fury-flash');
         floaty(elx, '👑 ROYAL FURY!', 'formshift');
         sfx.boom();
@@ -1296,7 +1297,7 @@ function animateDiffs(s, enemyEls, heroEl) {
       floaty(elx, '😤 Shook it ALL off!', 'blk'); // a cleanse, not the natural tick-down
     }
     if (e.artKey !== p.artKey) {
-      if (e.artKey === 'big_twister_p2') reformFx(elx, p.artKey, e.emoji);
+      if (e.artKey === 'magnet_core') reformFx(elx, p.artKey, e.emoji); // THE SAND FALLS AWAY — the shed is the signature moment
       else formShiftFx(elx, p.artKey, e.emoji);
     } else if (e.name !== p.name) formShiftFx(elx, null, e.emoji); // split-in-place: same art, new identity
   });
@@ -2270,7 +2271,7 @@ window.__RL2 = {
       if (type === 'treasure') return enterNode({ type: 'treasure', relic: arg || 'sunflower' });
       if (type === 'event') return enterNode({ type: 'event', event: arg || 'duck_pond' });
       if (type === 'fight' || type === 'elite' || type === 'boss') {
-        return enterNode({ type, enemies: arg || (type === 'boss' ? ['big_twister'] : ['gopher']) });
+        return enterNode({ type, enemies: arg || (type === 'boss' ? ['sand_monster'] : ['corn_colonel']) });
       }
       if (type === 'defeat') { run.floor = 5; return showDefeat(); }
       if (type === 'victory') return showVictory();
