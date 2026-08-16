@@ -33,3 +33,14 @@
 - **Tests: unit 1698/1698 · e2e 113/113 both engines.**
 
 **Next**: Stage B — the World-of-Weirdos bestiary: 4 world casts with world-scaled stats, 3 duck bosses with personality mechanics, THE KINETIC SAND MONSTER (limbs → shed → helpless magnet), stagger foreshadowing, Weirdness ladder. Then Phase 3 balance to the 20–30 fresh band.
+
+## 2026-08-16 · Stage B/C — bestiary, balance, ladder, music, art, LIVE ON GITHUB
+
+- **The World of Weirdos bestiary**: 34 new enemies in 4 world casts (all StS mirrors), 3 duck bosses with personalities, THE KINETIC SAND MONSTER exactly to the boys' spec (limbs sink back as armor · 50 dmg sheds the sand · Magnet helpless 1 turn at 100 HP · MAGNET THROW = 50, windup-telegraphed). Squish Ball previews the stagger. 68 scout reports.
+- **Balance (4 rounds + parity dials)**: fresh W1 ~65 / W2-3 ~35-40 / W4 ~5; buddy lane W4 ~20 (the endgame gate). Wyatt HP 51→64, Liam 76→62. Rails locked; deviation from GOAL's flat band logged in REVIEW.md.
+- **Weirdness ladder W1-10**: +7% HP/+5% dmg per level, opens at first Magnet fall, per-world bests on the world cards.
+- **Music COMPLETE**: 15 Suno tracks deployed at 128kbps + 4 word-level LRC karaoke anthems (take 1, new download policy). Victory sting 4.7s. Anthem audit green incl. the no-secret-beat check.
+- **Art**: title/farm/barn/pets(18)/maps/battles/actcards deployed; enemy batch generating. scene-bg layer bug found+fixed in live browser smoke.
+- **Visual smoke PASSED** (title art with all four worlds; farm hub with pond; stocked barn; combat with Bruno's chip + handed Claw Scratch; karaoke rolling on the real anthem).
+- **PUBLISHED**: public repo jmoranii/rolfe-legends-3, Pages live at https://jmoranii.github.io/rolfe-legends-3/ (enemy art follows when the batch lands).
+- **Tests: 1808 unit · 114/114 e2e both engines · selfplay ALL CLEAR on shipped bands.**
