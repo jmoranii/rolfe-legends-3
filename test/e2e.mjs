@@ -163,6 +163,10 @@ async function runSuite(browserType, name) {
     ok(await page.locator('.tip-card').count() === 1, `${name}: coach serves a tip on the victory beat`);
     await zapTips(page);
     await page.locator('.btn', { hasText: 'Collect your rewards' }).click();
+    // a pet may have dropped (12%/fight) — celebrate like a kid would, then move on
+    await page.waitForTimeout(250);
+    const petBtn = page.locator('.modal .btn', { hasText: /YES|NO WAY/ });
+    if (await petBtn.count() > 0) await petBtn.first().click();
     await page.waitForSelector('.reward-card, .btn');
     await zapTips(page);
     outcome = await page.locator('h2').first().textContent().catch(() => '');
