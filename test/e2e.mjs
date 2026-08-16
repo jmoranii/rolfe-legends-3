@@ -1,4 +1,4 @@
-// RL2 e2e smoke: title → hero select → boon → map → fight → play cards → outcome →
+// RL3 e2e smoke: title → farm → world select → hero → boon → map → fight → outcome →
 // reward → map → save/reload → farm code → service worker. Drives the real UI
 // headless in BOTH engines (the boys' tablets are Safari). Run:
 //   python3 -m http.server 8199 &   (repo root)
@@ -62,9 +62,36 @@ async function runSuite(browserType, name) {
   console.log(name || 'deep', 'goto...'); await page.goto(BASE, { waitUntil: 'load', timeout: 20000 }); console.log(name || 'deep', 'loaded');
   ok(await page.locator('.title-logo').count() === 1, `${name}: title renders`);
 
-  // new run → hero select
-  await page.locator('.btn', { hasText: 'New Adventure' }).click();
-  ok(await page.locator('.hero-card').count() === 2, `${name}: two heroes offered`);
+  // to the farm hub
+  await page.locator('.btn', { hasText: 'Go to the Farm' }).click();
+  ok((await page.textContent('h2')).includes('The Farm'), `${name}: farm hub renders`);
+  ok((await page.locator('.subtitle').first().textContent()).includes('Farm Coins'), `${name}: coins + capacity shown`);
+  await zapTips(page);
+
+  // the barn: empty but visitable
+  await page.locator('.btn', { hasText: 'Visit the Barn' }).click();
+  ok((await page.textContent('h2')).includes('The Barn'), `${name}: barn renders`);
+  ok(await page.locator('.goldie-gate').count() === 0, `${name}: no-tell — nothing at the gate`);
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Farm' }).click();
+
+  // the shop: Aaron's two tracks on the shelf
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Farm Shop' }).click();
+  ok((await page.locator('.screen').textContent()).includes('Battle Buddies'), `${name}: shop sells Battle Buddies`);
+  ok((await page.locator('.screen').textContent()).includes('Barn Expansion'), `${name}: shop sells barn expansion`);
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Farm' }).last().click();
+
+  // world select: 4 worlds, only world 1 open on a fresh farm
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Head out' }).click();
+  ok(await page.locator('.world-card').count() === 4, `${name}: four worlds on the ladder`);
+  ok(await page.locator('.world-card.world-locked').count() === 3, `${name}: worlds 2-4 locked on a fresh farm`);
+  await page.locator('.world-card:not(.world-locked)').first().click();
+
+  // hero select: ALL THREE Legends, no unlock needed
+  ok(await page.locator('.hero-card').count() === 3, `${name}: three heroes offered`);
 
   // pick Wyatt
   await page.locator('.hero-card', { hasText: 'Wyatt' }).click();
@@ -73,7 +100,7 @@ async function runSuite(browserType, name) {
   await page.locator('.scene-body .btn').first().click();
   // act story card interstitial
   await page.waitForSelector('.act-card');
-  ok((await page.textContent('.act-card-name')).includes('FAR FIELDS'), `${name}: act 1 story card`);
+  ok((await page.textContent('.act-card-name')).includes('CROP KINGDOM'), `${name}: world 1 story card`);
   await page.locator('.act-card .btn').click();
 
   // map: a real node graph — many spots, drawn edges, reachable starts pulsing
@@ -82,7 +109,7 @@ async function runSuite(browserType, name) {
   ok(await page.locator('.map-edges .edge').count() >= 10, `${name}: map draws edges`);
   ok(await page.locator('.map-node.reachable').count() >= 2, `${name}: multiple starting paths`);
   ok(await page.locator('.spot-boss-big').count() === 1, `${name}: boss crowns the map`);
-  ok((await page.textContent('h2')).includes('Far Fields'), `${name}: act 1 header`);
+  ok((await page.textContent('h2')).includes('Crop Kingdom'), `${name}: world 1 header`);
 
   // enter a reachable node (floor 1 = fight)
   await zapTips(page);
@@ -189,17 +216,18 @@ async function deepRun() {
   const out = await page.evaluate(async () => {
     const { R, C } = window.__RL2;
     const { makeRng } = await import('./js/rng.js');
-    // simulate a full run headless-in-page (same engine the UI uses)
-    const run = R.newRun('aaron', 12345);
-    let fights = 0;
-    for (let act = 1; act <= 3; act++) {
+    // one invincible expedition through EVERY world (same engine the UI uses),
+    // with a pet equipped so the companion path renders in anger
+    let fights = 0, worldsBeaten = 0;
+    for (let world = 1; world <= R.WORLDS; world++) {
+      const run = R.newRun('aaron', 12345 + world, { world, pet: world === 1 ? 'bear' : null });
       let bossDone = false;
       let guard0 = 60;
       while (!bossDone && guard0-- > 0) {
         const opts = R.nextNodes(run);
         const node = R.enterMapNode(run, opts[0].id);
         if (['fight', 'elite', 'boss'].includes(node.type)) {
-          const st = C.startCombat(run, node.enemies, makeRng(run.floor * 7 + act), { kind: node.type });
+          const st = C.startCombat(run, node.enemies, makeRng(run.floor * 7 + world), { kind: node.type });
           let guard = 0;
           while (!st.over && guard++ < 50) {
             st.hero.hp = Math.max(st.hero.hp, 500); st.hero.maxHp = 500; // invincible traversal — exercising code paths
@@ -210,50 +238,31 @@ async function deepRun() {
           }
           fights++;
           run.hp = 500; run.maxHp = 500;
-          if (node.type === 'boss') bossDone = true;
+          if (node.type === 'boss') { bossDone = true; worldsBeaten++; }
         }
       }
-      if (act < 3) R.advanceAct(run);
-      else break;
     }
-    return { fights, act: run.act };
+    return { fights, worldsBeaten };
   });
-  ok(out.fights > 10, `deep run exercised ${out.fights} fights across 3 acts`);
-  ok(out.act === 3, 'deep run reached act 3');
+  ok(out.fights > 15, `deep run exercised ${out.fights} fights across 4 worlds`);
+  ok(out.worldsBeaten === 4, 'deep run beat all four worlds');
   ok(errors.length === 0, `deep run: zero errors${errors.length ? ' — ' + errors[0].slice(0, 120) : ''}`);
   await browser.close();
 }
 
-// secret-hero unlock flow: Goldie ×3 → Liam appears → run starts with floating diapers
-async function liamUnlock() {
-  const name = 'liam';
+// Liam is a PUBLIC hero in RL3 (the boys found him in RL2 — secret's out):
+// straight to combat with the diapers floating, no unlock dance
+async function liamPublic() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(BASE, { waitUntil: 'load' });
-  ok(await page.locator('.goldie-egg').count() === 1, 'liam: Goldie watches the title screen');
-  // RL3 no-tell audit: the hotspot must render NOTHING — no beacon dot (RL2's
-  // white dot is how Wyatt found Goldie), no cursor affordance.
-  await page.waitForTimeout(1700);
-  const tell = await page.evaluate(() => {
-    const el = document.querySelector('.goldie-egg');
-    if (!el) return 'missing';
-    const after = getComputedStyle(el, '::after');
-    const cur = getComputedStyle(el).cursor;
-    const drawn = after.content !== 'none' && after.width !== 'auto' && parseFloat(after.width) > 0;
-    return drawn ? `dot:${after.width}` : (cur === 'pointer' ? 'cursor' : 'clean');
-  }).catch(() => 'clean');
-  ok(tell === 'clean', `liam: secret hotspot has zero visual tell (${tell})`);
-  // zero-hint check: no Liam on hero select before unlock
-  await page.locator('.btn', { hasText: 'New Adventure' }).click();
-  ok(await page.locator('.hero-card').count() === 2, 'liam: only 2 heroes before unlock');
-  await page.locator('.btn', { hasText: 'Back' }).click();
-  for (let i = 0; i < 3; i++) await page.locator('.goldie-egg').click();
-  ok((await page.textContent('.modal h2')).includes('LIAM THE LITTLE'), 'liam: unlock modal fires on 3rd tap');
-  await page.locator('.modal .btn').click();
-  await page.locator('.btn', { hasText: 'New Adventure' }).click();
-  ok(await page.locator('.hero-card').count() === 3, 'liam: 3 heroes after unlock');
+  await page.locator('.btn', { hasText: 'Go to the Farm' }).click();
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Head out' }).click();
+  await page.locator('.world-card:not(.world-locked)').first().click();
+  ok(await page.locator('.hero-card', { hasText: 'Liam' }).count() === 1, 'liam: on the roster from day one');
   await page.locator('.hero-card', { hasText: 'Liam' }).click();
   await page.locator('.scene-body .btn').first().click(); // boon
   await page.waitForSelector('.act-card');
@@ -264,16 +273,62 @@ async function liamUnlock() {
   await page.waitForSelector('.enemy');
   await zapTips(page);
   ok(await page.locator('.orb-row .orb').count() >= 1, 'liam: diapers float in combat (Diaper Bag)');
-  // tap a floating diaper → it explains itself (James's legibility ask)
   await page.locator('.orb[data-orb="stinky"]').first().click();
   ok((await page.locator('.toast').first().textContent()).includes('Stinky Diaper'), 'liam: tapping a diaper explains it');
-  // unlock persists
-  await page.reload({ waitUntil: 'load' });
-  await page.evaluate(() => localStorage.removeItem('rl2_run'));
-  await page.reload({ waitUntil: 'load' });
-  await page.locator('.btn', { hasText: 'New Adventure' }).click();
-  ok(await page.locator('.hero-card').count() === 3, 'liam: unlock persists across reload');
   ok(errors.length === 0, `liam: zero page errors${errors.length ? ' — ' + errors[0].slice(0, 120) : ''}`);
+  await browser.close();
+}
+
+// THE SECRET (Goldie): zero tell before the ritual, unlock after the exact
+// pat sequence, Barn Book blind to her until she's home.
+async function goldieRitual() {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(BASE, { waitUntil: 'load' });
+  // seed a farm with all three duck super-pets + a bystander pet
+  await page.evaluate(() => {
+    const farm = { v: 1, coins: 0, pets: ['brownie', 'diver', 'harmless', 'pig'], equipped: null,
+      upgrades: { petBattle: false, barnTier: 0, poolTier: 0 },
+      worlds: { unlocked: 4, beaten: [1, 2, 3] }, stats: { runs: 0, wins: 0, petsWon: 0, coinsEarned: 0 } };
+    localStorage.setItem('rl3_farm', JSON.stringify(farm));
+  });
+  await page.reload({ waitUntil: 'load' });
+  await page.locator('.btn', { hasText: 'Go to the Farm' }).click();
+  await zapTips(page);
+
+  // Barn Book pre-unlock: Goldie does not exist — not even as a silhouette
+  await page.locator('.btn', { hasText: 'Barn Book' }).click();
+  const bookText = await page.locator('.screen').textContent();
+  ok(!bookText.toLowerCase().includes('goldie'), 'goldie: absent from the Barn Book pre-unlock');
+  ok(!/llama/i.test(bookText), 'goldie: no llama references pre-unlock');
+  await page.locator('.btn', { hasText: 'Farm' }).click();
+
+  // the barn: no gate element exists, wrong pat orders summon nothing
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Visit the Barn' }).click();
+  await zapTips(page);
+  ok(await page.locator('.goldie-gate').count() === 0, 'goldie: nothing at the gate before the ritual');
+  const pat = async (name) => { await page.locator('.barn-pet', { hasText: name }).click(); await page.waitForTimeout(80); };
+  await pat('Harmless'); await pat('Diver'); await pat('Brownie'); // reverse order — nothing
+  ok(await page.locator('.goldie-gate').count() === 0, 'goldie: wrong order summons nothing');
+  await pat('Brownie'); await pat('Diver'); await pat('Sir Oinks'); await pat('Harmless'); // interrupted — nothing
+  ok(await page.locator('.goldie-gate').count() === 0, 'goldie: interrupted chain summons nothing');
+  // the true ritual: Brownie → Diver → Harmless, uninterrupted
+  await pat('Brownie'); await pat('Diver'); await pat('Harmless');
+  ok(await page.locator('.goldie-gate').count() === 1, 'goldie: appears at the gate after the true ritual');
+  for (let i = 0; i < 3; i++) { await page.locator('.goldie-gate').click(); await page.waitForTimeout(60); }
+  ok((await page.textContent('.modal h2')).includes('GOLDIE'), 'goldie: joins on the 3rd tap');
+  await page.locator('.modal .btn').click();
+  ok((await page.locator('.screen').textContent()).includes('Goldie'), 'goldie: home in the barn');
+  // persists + Book knows her now
+  await page.reload({ waitUntil: 'load' });
+  await page.locator('.btn', { hasText: 'Go to the Farm' }).click();
+  await zapTips(page);
+  await page.locator('.btn', { hasText: 'Barn Book' }).click();
+  ok((await page.locator('.screen').textContent()).includes('Goldie'), 'goldie: in the Barn Book after unlock');
+  ok(errors.length === 0, `goldie: zero page errors${errors.length ? ' — ' + errors[0].slice(0, 120) : ''}`);
   await browser.close();
 }
 
@@ -345,8 +400,13 @@ async function deathScreen() {
   ok((await page.textContent('.recap-line')).includes('fights won'), 'defeat: run recap shows');
   const line1 = await page.textContent('.speaker-line');
   ok(line1.includes('Coach James'), 'defeat: Coach signs the pickup line');
-  await page.locator('.btn', { hasText: 'Try Again' }).click();
-  await page.waitForSelector('.title-logo');
+  // heading home settles the run: a LOST run still banks coins (progress ≠ zero)
+  await page.locator('.btn', { hasText: 'Head home' }).click();
+  await page.waitForSelector('.settle-lines');
+  ok((await page.textContent('.settle-lines')).includes('Banked'), 'defeat: settlement banks the run');
+  await page.locator('.btn', { hasText: 'Back to the Farm' }).click();
+  await page.waitForSelector('h2');
+  ok((await page.textContent('h2')).includes('The Farm'), 'defeat: lands back at the farm');
   // rotation: a second defeat serves a different line
   await page.evaluate(() => { window.__RL2.dev.start('aaron'); window.__RL2.dev.enter('defeat'); });
   await page.waitForSelector('.speaker-line');
@@ -453,7 +513,8 @@ async function fullscreenButton() {
 try {
   await runSuite(chromium, 'chromium');
   await runSuite(webkit, 'webkit');
-  await liamUnlock();
+  await liamPublic();
+  await goldieRitual();
   await creditsPreview();
   await fleeExit();
   await deathScreen();

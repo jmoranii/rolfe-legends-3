@@ -1,6 +1,7 @@
-// Rolfe Legends 2 — UI layer. Renders state from the pure engine (combat.js/run.js).
-// Art + music are drop-in layers: PNGs in assets/ (emoji fallback), MP3s in
-// assets/audio/ (silence fallback). No code changes needed when assets land.
+// Rolfe Legends 3 — UI layer. Renders state from the pure engine (combat.js/run.js)
+// plus the persistent FARM meta-layer (farm.js): title → farm hub → world select →
+// expedition → settlement → back to the farm. Art + music are drop-in layers:
+// PNGs in assets/ (emoji fallback), MP3s in assets/audio/ (silence fallback).
 
 import { makeRng, randomSeed } from './rng.js';
 import { HEROES, CARDS, DIAPERS, cardInfo, makeCard, upgradableCards, nValue } from './cards.js';
@@ -9,6 +10,8 @@ import { EVENTS } from './events.js';
 import { scoutFor } from './scout.js';
 import * as C from './combat.js';
 import * as R from './run.js';
+import * as F from './farm.js';
+import { PETS, barnBookPets, petIntent, petDeckCards } from './pets.js';
 import { MAP_FLOORS, BOSS_ID } from './map.js';
 import { sfx, setEnabled as setSfx, isEnabled as sfxOn } from './sfx.js';
 import * as music from './music.js';
@@ -18,14 +21,15 @@ import { nextTip, nextLossLine } from './tips.js';
 import { EVENT_KEYS } from './events.js';
 
 const $app = document.getElementById('app');
-const SAVE_KEY = 'rl2_run';
-const PROFILE_KEY = 'rl2_profile';
-const TIPS_KEY = 'rl2_tips';
+const SAVE_KEY = 'rl3_run';
+const PROFILE_KEY = 'rl3_profile';
+const TIPS_KEY = 'rl3_tips';
+const FARM_KEY = 'rl3_farm';
 
 const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // Animation pacing: 'slow' (default — big, readable cause-and-effect for
 // learning) or 'fast' (settings toggle, once the game is understood).
-const ANIM_KEY = 'rl2_anim';
+const ANIM_KEY = 'rl3_anim';
 let animMode = localStorage.getItem(ANIM_KEY) || 'slow';
 function fxScale() { return REDUCED ? 0.01 : (animMode === 'fast' ? 0.55 : 1.9); }
 function stepMs() { return REDUCED ? 30 : (animMode === 'fast' ? 420 : 1350); }  // enemy-turn beat
@@ -38,12 +42,16 @@ let combatKind = 'fight';
 let selectedCard = null;
 let prevSnap = null;                   // combat diff snapshot → floaties/shakes
 
-// ---------- profile & save ----------
+// ---------- profile, farm & save ----------
+// Profile = hero win counts + flags. Farm = the persistent meta-layer (pets,
+// coins, upgrades, world ladder) with its own key + validated (de)serializer.
 function loadProfile() {
-  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || { wins: {}, bonusSeen: false, liamUnlocked: false }; }
-  catch { return { wins: {}, bonusSeen: false, liamUnlocked: false }; }
+  try { return JSON.parse(localStorage.getItem(PROFILE_KEY)) || { wins: {}, bonusSeen: false }; }
+  catch { return { wins: {}, bonusSeen: false }; }
 }
 function saveProfile(p) { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }
+let farm = F.deserializeFarm(localStorage.getItem(FARM_KEY)) || F.newFarm();
+function saveFarm() { localStorage.setItem(FARM_KEY, F.serializeFarm(farm)); }
 function saveRun() { if (run) localStorage.setItem(SAVE_KEY, R.serializeRun(run)); }
 function clearSave() { localStorage.removeItem(SAVE_KEY); }
 
@@ -253,22 +261,20 @@ function showTitle() {
   const art = bgLayer('assets/ui/title.jpg', 'title-art');
   s.appendChild(art);
   const inner = el('div', 'title-inner');
-  inner.appendChild(el('h1', 'title-logo', '🌪️ ROLFE LEGENDS 2 🦆'));
-  inner.appendChild(el('p', 'subtitle title-sub', '<b>DEFEND THE FARM</b><br>a farm adventure for the Legends of Rolfe'));
+  inner.appendChild(el('h1', 'title-logo', '👽 ROLFE LEGENDS 3 🦆'));
+  inner.appendChild(el('p', 'subtitle title-sub', '<b>WORLD OF WEIRDOS</b><br>a Legends of Rolfe adventure — by Wyatt, Aaron & Uncle James'));
   const btns = el('div', 'title-buttons');
   const saved = R.deserializeRun(localStorage.getItem(SAVE_KEY));
   if (saved) {
-    const b = el('button', 'btn gold', `▶️ Continue — ${HEROES[saved.hero].name}, ${R.ACT_INFO[saved.act].name}`);
+    const b = el('button', 'btn gold', `▶️ Continue — ${HEROES[saved.hero].name}, ${R.WORLD_INFO[saved.act].name}`);
     b.onclick = () => { sfx.tap(); run = saved; showMap(); };
     btns.appendChild(b);
   }
-  const nb = el('button', 'btn', '🌱 New Adventure');
-  nb.onclick = () => { sfx.tap(); showHeroSelect(); };
+  const nb = el('button', 'btn', '🚜 Go to the Farm');
+  nb.onclick = () => { sfx.tap(); showFarm(); };
   btns.appendChild(nb);
   const p = loadProfile();
-  // victory stars: one ⭐ per win per hero — the collection lives on the title
-  // screen (James, Tue 2026-08-05). Liam appears only once he has a win, which
-  // requires the unlock — zero-hint holds.
+  // victory stars: one ⭐ per hero win (RL2 tradition, kept)
   const star = (n) => (n <= 5 ? '⭐'.repeat(n) : `⭐×${n}`);
   const winBits = ['wyatt', 'aaron', 'liam'].filter((h) => p.wins[h] > 0)
     .map((h) => `${HEROES[h].emoji} ${HEROES[h].name.split(' ')[0]} ${star(p.wins[h])}`);
@@ -278,45 +284,6 @@ function showTitle() {
   btns.appendChild(settings);
   inner.appendChild(btns);
   s.appendChild(inner);
-
-  // Goldie watches. Goldie says nothing. Goldie knows. (Tap 3×.)
-  // With title art she stands painted in the lower right; the hotspot sits on
-  // her. Without art the emoji plays her part.
-  const goldie = el('div', 'goldie-egg', '🦙');
-  art.addEventListener('transitionend', () => {}); // no-op; hotspot swap below
-  const swapIfArt = () => {
-    if (art.classList.contains('has-art')) { goldie.classList.add('on-art'); goldie.textContent = ''; } // emoji out; the CSS dot takes over as the beacon
-  };
-  setTimeout(swapIfArt, 350);
-  setTimeout(swapIfArt, 1400);
-  let taps = 0;
-  goldie.onclick = () => {
-    taps += 1;
-    const prof = loadProfile();
-    if (taps >= 3) {
-      taps = 0;
-      if (!prof.liamUnlocked) {
-        prof.liamUnlocked = true;
-        saveProfile(prof);
-        sfx.win();
-        modal(null, (m, close) => {
-          m.appendChild(el('div', 'event-emoji', '🦙'));
-          m.appendChild(el('div', 'speaker-line', 'Goldie steps aside. Behind her, someone very small waddles out of the tall grass…'));
-          m.appendChild(el('div', 'crown', '🍼'));
-          m.appendChild(el('h2', '', 'LIAM THE LITTLE has joined the Legends!'));
-          m.appendChild(el('p', 'subtitle', 'Secret hero unlocked — find him on the hero screen. Diapers orbit him. Nobody knows why.'));
-          const b = el('button', 'btn gold', 'WHOA. →');
-          b.onclick = () => { close(); showTitle(); };
-          m.appendChild(b);
-        }, { dismissable: false });
-      } else {
-        toast('🦙 Goldie says nothing. Goldie knows.');
-      }
-    } else {
-      sfx.tap();
-    }
-  };
-  s.appendChild(goldie);
 
   if (fsAvailable()) {
     const fs = el('button', 'fs-btn', '⛶');
@@ -333,6 +300,270 @@ function showTitle() {
     'assets/events/shop_jacob.jpg', 'assets/events/rest_granny.jpg', 'assets/events/treasure_rusty.jpg',
   ]);
 }
+
+// ---------- THE FARM (persistent hub — the heart of RL3) ----------
+function petFace(id, cls = 'pet-face') {
+  return artImg(`assets/pets/${id}.jpg`, PETS[id].emoji, cls);
+}
+
+function showFarm() {
+  releaseScreen();
+  clearSave(); run = null; // reaching the farm means no expedition is in flight
+  music.play('farm');
+  const s = screen('act-1 farm-screen');
+  s.appendChild(bgLayer('assets/ui/farm.jpg', 'scene-bg'));
+  s.appendChild(el('h2', '', '🚜 The Farm'));
+  s.appendChild(el('p', 'subtitle', `💰 ${farm.coins} Farm Coins · 🛖 ${F.petsIn(farm, 'barn').length}/${F.barnCapacity(farm)} · 🌊 ${F.petsIn(farm, 'pool').length}/${F.poolCapacity(farm)}`));
+
+  // equipped battle buddy (once Battle Buddies is bought)
+  if (farm.upgrades.petBattle) {
+    const eq = el('div', 'equip-row');
+    if (farm.equipped) {
+      eq.appendChild(petFace(farm.equipped, 'pet-face pet-face-sm'));
+      eq.appendChild(el('span', '', `Battle buddy: <b>${PETS[farm.equipped].name}</b>`));
+    } else {
+      eq.appendChild(el('span', '', 'No battle buddy picked.'));
+    }
+    const ch = el('button', 'btn secondary btn-sm', farm.equipped ? 'Change' : 'Pick one');
+    ch.onclick = showEquipPicker;
+    eq.appendChild(ch);
+    s.appendChild(eq);
+  }
+
+  const out = el('button', 'btn gold', '🗺️ Head out and fight some weirdos!');
+  out.onclick = () => { sfx.tap(); showWorldSelect(); };
+  const barn = el('button', 'btn', '🛖 Visit the Barn');
+  barn.onclick = () => { sfx.tap(); showBarn(); };
+  const book = el('button', 'btn', '📖 Barn Book');
+  book.onclick = () => { sfx.tap(); showBarnBook(); };
+  const shop = el('button', 'btn', `🛒 Farm Shop`);
+  shop.onclick = () => { sfx.tap(); showFarmShop(); };
+  const back = el('button', 'btn secondary', '← Title');
+  back.onclick = showTitle;
+  s.append(out, barn, book, shop, back);
+  coachTip('farm', 'This is home! Everything you win stays here.');
+}
+
+function showEquipPicker() {
+  modal('⚔️ Pick your battle buddy', (m, close) => {
+    const none = el('button', 'btn secondary', '🚫 Go alone');
+    none.onclick = () => { F.equipPet(farm, null); saveFarm(); close(); showFarm(); };
+    m.appendChild(none);
+    for (const id of farm.pets) {
+      const p = PETS[id];
+      const b = el('button', 'btn' + (farm.equipped === id ? ' gold' : ''));
+      b.appendChild(petFace(id, 'pet-face pet-face-sm'));
+      const cardBits = petDeckCards(id).map((c) => cardInfo(c).name);
+      b.appendChild(el('span', '', `<b>${p.name}</b><br><span class="subtitle">${p.companion.desc}${cardBits.length ? ` · adds ${cardBits.join(' + ')}` : ''}</span>`));
+      b.onclick = () => { F.equipPet(farm, id); saveFarm(); close(); showFarm(); };
+      m.appendChild(b);
+    }
+  });
+}
+
+// The barn visit. Pats have no effect. Pats are mandatory. (INSPIRATION.md #11)
+function showBarn() {
+  const s = screen('act-1 farm-screen');
+  s.appendChild(bgLayer('assets/ui/barn.jpg', 'scene-bg'));
+  s.appendChild(el('h2', '', '🛖 The Barn'));
+  const patChain = []; // this visit's pat order (the ritual listens — silently)
+  const ducksOwned = ['brownie', 'diver', 'harmless'].every((d) => farm.pets.includes(d));
+
+  const section = (title, ids, cap) => {
+    s.appendChild(el('h3', 'barn-section', `${title} (${ids.length}/${cap})`));
+    const grid = el('div', 'barn-grid');
+    if (!ids.length) grid.appendChild(el('p', 'subtitle', 'Nobody home yet — go win some fights!'));
+    for (const id of ids) {
+      const p = PETS[id];
+      const c = el('div', 'barn-pet');
+      c.appendChild(petFace(id));
+      c.appendChild(el('div', 'barn-pet-name', p.name));
+      c.onclick = () => {
+        sfx.tap();
+        floaty(c, '❤️', 'floaty-heart');
+        toast(`${p.emoji} ${p.blurb}`, 2200);
+        patChain.push(id);
+        maybeSummonGoldie();
+      };
+      grid.appendChild(c);
+    }
+    s.appendChild(grid);
+  };
+  section('The Barn', F.petsIn(farm, 'barn'), F.barnCapacity(farm));
+  section('🌊 The Fish Pool', F.petsIn(farm, 'pool'), F.poolCapacity(farm));
+
+  // The ritual: all three ducks home, patted in world order — Brownie, Diver,
+  // Harmless — with nothing in between, in one visit. Then someone appears at
+  // the gate. Nothing renders, hints, or logs before that moment.
+  const maybeSummonGoldie = () => {
+    if (!ducksOwned || farm.pets.includes('goldie')) return;
+    const t = patChain.slice(-3).join(',');
+    if (t !== 'brownie,diver,harmless') return;
+    if (s.querySelector('.goldie-gate')) return;
+    const g = el('div', 'goldie-gate', '🦙');
+    let taps = 0;
+    g.onclick = () => {
+      taps += 1;
+      sfx.tap();
+      if (taps < 3) return;
+      farm.pets.push('goldie'); // the gate is hers; a full barn never turns her away
+      farm.stats.petsWon += 1;
+      saveFarm();
+      sfx.win();
+      modal(null, (m, close) => {
+        m.appendChild(el('div', 'event-emoji', '🦙'));
+        m.appendChild(el('div', 'speaker-line', 'The ducks all look at the gate at once. Goldie has been watching. Goldie has ALWAYS been watching.'));
+        m.appendChild(el('div', 'crown', '👑'));
+        m.appendChild(el('h2', '', 'GOLDIE joins the farm!'));
+        m.appendChild(el('p', 'subtitle', 'The legendary llama. She spits with ancient precision. She knows things.'));
+        const b = el('button', 'btn gold', 'WHOA. →');
+        b.onclick = () => { close(); showBarn(); };
+        m.appendChild(b);
+      }, { dismissable: false });
+    };
+    s.appendChild(g);
+  };
+
+  const back = el('button', 'btn secondary', '← Farm');
+  back.onclick = showFarm;
+  s.appendChild(back);
+  coachTip('barn', 'Tap a pet to say hi. They missed you.');
+}
+
+function showBarnBook() {
+  const s = screen('act-1 farm-screen');
+  s.appendChild(el('h2', '', '📖 The Barn Book'));
+  const known = barnBookPets({ farm });
+  const owned = known.filter((k) => farm.pets.includes(k)).length;
+  s.appendChild(el('p', 'subtitle', `${owned} of ${known.length} pets found`));
+  const grid = el('div', 'barn-grid book-grid');
+  const RARITY_BADGE = { common: '⚪', uncommon: '🟢', rare: '🔵', legendary: '🟡' };
+  for (const id of known) {
+    const p = PETS[id];
+    const have = farm.pets.includes(id);
+    const c = el('div', 'barn-pet' + (have ? '' : ' book-unknown'));
+    if (have) {
+      c.appendChild(petFace(id));
+      c.appendChild(el('div', 'barn-pet-name', `${RARITY_BADGE[p.rarity]} ${p.name}`));
+      c.onclick = () => modal(`${p.emoji} ${p.name}`, (m) => {
+        m.appendChild(petFace(id));
+        m.appendChild(el('p', '', p.blurb));
+        m.appendChild(el('p', '', `<b>In battle:</b> ${p.companion.desc}`));
+        const cardBits = petDeckCards(id).map((cc) => cardInfo(cc));
+        for (const info of cardBits) m.appendChild(miniCard(info));
+        if (id === 'bear') m.appendChild(el('p', 'subtitle', 'Bruno hands you his card himself. Every turn. He insists.'));
+      });
+    } else {
+      c.appendChild(el('div', 'pet-face pet-mystery', '❓'));
+      c.appendChild(el('div', 'barn-pet-name', `${RARITY_BADGE[p.rarity]} ???`));
+      c.onclick = () => toast(p.source === 'boss' ? '👑 A boss guards this one…' : `${RARITY_BADGE[p.rarity]} Win more fights to meet this one!`);
+    }
+    grid.appendChild(c);
+  }
+  s.appendChild(grid);
+  const back = el('button', 'btn secondary', '← Farm');
+  back.onclick = showFarm;
+  s.appendChild(back);
+}
+
+function showFarmShop() {
+  const s = sceneScreen('assets/events/shop_jacob.jpg', '🛒', "The Farm Shop");
+  s.appendChild(el('p', 'subtitle', `💰 ${farm.coins} Farm Coins`));
+  const stock = F.shopStock(farm);
+  if (!stock.length) s.appendChild(el('p', '', 'All stocked up! The farm is fully upgraded. 🎉'));
+  for (const item of stock) {
+    const b = el('button', 'btn' + (farm.coins >= item.price ? '' : ' unaffordable'));
+    b.innerHTML = `${item.emoji} <b>${item.name}</b> — 💰${item.price}<br><span class="subtitle">${item.desc}</span>`;
+    b.onclick = () => {
+      if (!F.shopBuy(farm, item.id)) return toast(`Not enough coins yet — win some fights! (💰${item.price})`);
+      saveFarm();
+      sfx.relic();
+      toast(`${item.emoji} ${item.name} — yours!`);
+      showFarmShop();
+    };
+    s.appendChild(b);
+  }
+  const back = el('button', 'btn secondary', '← Farm');
+  back.onclick = showFarm;
+  s.appendChild(back);
+  coachTip('shop_farm', 'Coins stay yours forever — win or lose.');
+}
+
+// ---------- world select (the ladder) ----------
+let chosenWorld = 1;
+function showWorldSelect() {
+  const s = screen('act-1 farm-screen');
+  s.appendChild(el('h2', '', '🗺️ Where to today?'));
+  for (let w = 1; w <= R.WORLDS; w++) {
+    const info = R.WORLD_INFO[w];
+    const open = w <= farm.worlds.unlocked;
+    const beaten = farm.worlds.beaten.includes(w);
+    const c = el('div', 'world-card' + (open ? '' : ' world-locked'));
+    const guard = w === 4 ? '🧲 Something magnetic waits at the end…' : `🦆 Boss: ${info.duck} the duck`;
+    c.innerHTML = `<div class="world-emoji">${open ? info.emoji : '🔒'}</div>
+      <div><b>World ${w}: ${open ? info.name : '???'}</b>${beaten ? ' ⭐' : ''}<br>
+      <span class="subtitle">${open ? guard : 'Beat the world before it to unlock!'}</span></div>`;
+    if (open) c.onclick = () => { sfx.tap(); chosenWorld = w; showHeroSelect(); };
+    s.appendChild(c);
+  }
+  const back = el('button', 'btn secondary', '← Farm');
+  back.onclick = showFarm;
+  s.appendChild(back);
+}
+
+// ---------- new pet celebration ----------
+function showPetPop(petId, onDone) {
+  const p = PETS[petId];
+  sfx.relic();
+  modal(null, (m, close) => {
+    m.appendChild(el('div', 'crown', '🎉'));
+    m.appendChild(el('h2', '', 'A NEW PET!'));
+    m.appendChild(petFace(petId));
+    m.appendChild(el('h3', '', `${p.emoji} ${p.name}`));
+    m.appendChild(el('p', '', p.blurb));
+    m.appendChild(el('p', 'subtitle', `${p.habitat === 'pool' ? '🌊 Heads for the fish pool' : '🛖 Heads for the barn'} when you get home.`));
+    const b = el('button', 'btn gold', p.rarity === 'legendary' ? 'NO WAY!! →' : 'YES! →');
+    b.onclick = () => { close(); onDone(); };
+    m.appendChild(b);
+  }, { dismissable: false });
+}
+
+// ---------- expedition settlement (every run ends at the farm) ----------
+// Split in two so the world-4 victory can settle IMMEDIATELY (before the long
+// credits roll — closing the tab mid-anthem must never lose banked progress),
+// then render the summary after the crown screen.
+function settleExpedition(won) {
+  const worldNum = run.act;
+  const openedBefore = farm.worlds.unlocked;
+  const summary = F.settleRun(farm, run, won);
+  if (won) F.beatWorld(farm, worldNum);
+  const opened = farm.worlds.unlocked > openedBefore ? farm.worlds.unlocked : null;
+  saveFarm();
+  clearSave();
+  run = null;
+  return { won, worldNum, summary, opened };
+}
+
+function renderSettlement(data) {
+  const info = R.WORLD_INFO[data.worldNum];
+  const s = screen('act-1 farm-screen');
+  s.appendChild(el('h2', '', data.won ? `🌟 ${info.name} — SAVED!` : '🏡 Back home safe'));
+  const lines = el('div', 'settle-lines');
+  lines.appendChild(el('p', '', `💰 Banked <b>${data.summary.banked}</b> Farm Coins (${farm.coins} total)`));
+  for (const id of data.summary.movedIn) {
+    lines.appendChild(el('p', '', `${PETS[id].emoji} <b>${PETS[id].name}</b> moved into the ${PETS[id].habitat === 'pool' ? 'fish pool' : 'barn'}!`));
+  }
+  for (const id of data.summary.turnedAway) {
+    lines.appendChild(el('p', '', `😢 ${PETS[id].emoji} ${PETS[id].name} found the ${PETS[id].habitat === 'pool' ? 'pool' : 'barn'} FULL… (the shop sells expansions!)`));
+  }
+  if (data.opened) lines.appendChild(el('p', '', `🗺️ <b>World ${data.opened}: ${R.WORLD_INFO[data.opened].name}</b> is now open!`));
+  s.appendChild(lines);
+  const b = el('button', 'btn gold', '🚜 Back to the Farm');
+  b.onclick = showFarm;
+  s.appendChild(b);
+}
+
+function showRunEnd(won) { renderSettlement(settleExpedition(won)); }
 
 function showSettings() {
   modal('⚙️ Settings', (m, close) => {
@@ -381,11 +612,10 @@ window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); defe
 // ---------- hero select & boon ----------
 function showHeroSelect() {
   const s = screen('act-1');
-  s.appendChild(el('h2', '', 'Who defends the farm today?'));
+  const winfo = R.WORLD_INFO[chosenWorld];
+  s.appendChild(el('h2', '', `Who heads to ${winfo.name}?`));
   const row = el('div', 'hero-pick');
-  const roster = ['wyatt', 'aaron'];
-  if (loadProfile().liamUnlocked) roster.push('liam');
-  for (const id of roster) {
+  for (const id of ['wyatt', 'aaron', 'liam']) { // all three Legends, front and center
     const h = HEROES[id];
     const c = el('div', 'hero-card');
     c.appendChild(artImg(`assets/ui/portrait_${id}.jpg`, h.emoji, 'hero-face'));
@@ -396,23 +626,27 @@ function showHeroSelect() {
     row.appendChild(c);
   }
   s.appendChild(row);
+  if (farm.upgrades.petBattle && farm.equipped) {
+    s.appendChild(el('p', 'subtitle', `${PETS[farm.equipped].emoji} ${PETS[farm.equipped].name} is coming along!`));
+  }
   const back = el('button', 'btn secondary', '← Back');
-  back.onclick = showTitle;
+  back.onclick = showWorldSelect;
   s.appendChild(back);
 }
 
 function startRun(heroId) {
-  run = R.newRun(heroId, randomSeed());
+  run = R.newRun(heroId, randomSeed(), { world: chosenWorld, pet: farm.upgrades.petBattle ? farm.equipped : null });
+  run.ownedPets = [...farm.pets]; // drop-roll dedupe: never re-win a pet you own
   showBoon();
 }
 
 function showBoon() {
   const s = sceneScreen('assets/ui/portrait_coach.jpg', '🧢', 'Coach James');
-  s.appendChild(el('div', 'speaker-line', '"Big day, kid. The farm\'s counting on you. Take one of these before you head out."'));
+  s.appendChild(el('div', 'speaker-line', '"Big day, kid. That world\'s full of weirdos. Take one of these before you head out."'));
   const rng = makeRng(run.seed ^ 777);
   for (const boon of R.coachBoons(run, rng)) {
     const b = el('button', 'btn', boon.label);
-    b.onclick = () => { sfx.relic(); boon.apply(run, rng); saveRun(); showActCard(1, showMap); };
+    b.onclick = () => { sfx.relic(); boon.apply(run, rng); saveRun(); showActCard(run.act, showMap); };
     s.appendChild(b);
   }
 }
@@ -444,7 +678,7 @@ function showMap() {
   saveRun();
   const s = screen(actCls());
   s.classList.add('map-screen');
-  const info = R.ACT_INFO[run.act];
+  const info = R.WORLD_INFO[run.act];
 
   // top bar
   const bar = el('div', 'map-topbar');
@@ -560,7 +794,6 @@ function showMap() {
   prefetchActBundle(run.act);
   if (eliteReachable) prefetch(['assets/audio/elite.mp3']);
   if (run.floor >= 8) prefetch(['assets/audio/boss.mp3', 'assets/audio/victory.mp3']);
-  if (run.floor >= 10 && run.act < R.ACTS) prefetchActBundle(run.act + 1);
 }
 
 function enterNode(node) {
@@ -592,13 +825,13 @@ function startCombatUI(enemyKeys, kind) {
   combat = C.startCombat(run, enemyKeys, makeRng(randomSeed()), { kind });
   lastPulseTurn = -1;
   holdScreen();
-  music.play(kind === 'boss' ? 'boss' : kind === 'elite' ? 'elite' : 'battle');
+  music.play(kind === 'boss' ? (run.act === R.WORLDS ? 'finalboss' : 'duckboss') : kind === 'elite' ? 'elite' : 'battle');
   selectedCard = null;
   prevSnap = null;
   renderCombat();
   coachTip('energy', 'You get 3 ⚡ each turn. Every card costs some!');
   coachTip('intent', "Those bubbles show each enemy's next move!");
-  if (kind === 'boss' && run.act === R.ACTS) {
+  if (kind === 'boss' && run.act === R.WORLDS) {
     // a win is likely — have the ending ready the instant it happens
     const p = loadProfile();
     const wants = [`assets/audio/anthem_${run.hero}.mp3`, `assets/audio/anthem_${run.hero}.lrc`, 'assets/ui/title.jpg'];
@@ -626,7 +859,7 @@ const STATUS_INFO = {
   focus: '😆 Giggle Power: all floating diapers get that much stronger.',
 };
 
-const SEENFX_KEY = 'rl2_seenfx';
+const SEENFX_KEY = 'rl3_seenfx';
 function seenFx() { try { return JSON.parse(localStorage.getItem(SEENFX_KEY)) || {}; } catch { return {}; } }
 function markFxSeen(k) {
   const seen = seenFx();
@@ -956,6 +1189,23 @@ function animateDiffs(s, enemyEls, heroEl) {
       sfx.powerUp();
       continue;
     }
+    if (ev.t === 'pet') {
+      // the battle buddy acted — announce it from its chip (pets are as legible
+      // as enemy intents: nothing a pet does is invisible)
+      const petEl = document.querySelector('.pet-chip') || heroEl;
+      const pd = PETS[ev.pet];
+      if (pd) {
+        floaty(petEl, `${pd.emoji} ${pd.name}!`, 'formshift');
+        if (petEl.classList) { petEl.classList.remove('proc'); void petEl.offsetWidth; petEl.classList.add('proc'); }
+      }
+      sfx.pop();
+      continue;
+    }
+    if (ev.t === 'mystery') {
+      const petEl = document.querySelector('.pet-chip') || heroEl;
+      floaty(petEl, ev.roll === 'dmg' ? '🎁 → ⚔️!' : ev.roll === 'block' ? '🎁 → 🛡️!' : '🎁 → ❤️!', 'formshift');
+      continue;
+    }
     if (ev.t === 'orbblock') {
       const orbEl = s.querySelector && s.querySelector('.orb[data-orb="fresh"]');
       if (orbEl && heroEl) flingEmoji(orbEl, heroEl, '🩲');
@@ -1144,6 +1394,17 @@ function renderCombat(actedEnemy = null) {
   const orb = el('div', 'energy-orb', `${h.energy}<small>⚡</small>`);
   strip.appendChild(orb);
   inner.appendChild(strip);
+
+  // the battle buddy chip: the pet fights beside you, and telegraphs its next
+  // move exactly like an enemy intent (pet legibility canon)
+  if (st.petId && PETS[st.petId]) {
+    const pd = PETS[st.petId];
+    const chip = el('button', 'pet-chip');
+    chip.appendChild(artImg(`assets/pets/${st.petId}.jpg`, pd.emoji, 'pet-face pet-face-sm'));
+    chip.appendChild(el('span', 'pet-chip-txt', `<b>${pd.name}</b><br><span class="pet-intent">${petIntent(st.petId, st.turn + (st.phase === 'enemy' ? 1 : 0))}</span>`));
+    chip.onclick = () => toast(`${pd.emoji} ${pd.name} — ${pd.companion.desc}`, 2600);
+    inner.appendChild(chip);
+  }
 
   // the belt: labeled FARM TREASURES right under the health bar —
   // pins jiggle when a treasure procs, so its work is visible (James's ask)
@@ -1408,21 +1669,22 @@ function combatWon() {
   saveRun();
   if (combatKind === 'boss') {
     const bossName = st.enemies.filter((e) => e.isBoss).map((e) => e.name).join(' & ') || 'THE BOSS';
-    // The run ends here, so a card reward is pointless — you'd pick a card and then
-    // immediately walk into the ending. Go straight from the splash to the victory
-    // sequence. (finishReward already short-circuited to showVictory on the last act,
-    // so nothing is lost: no boss relic was granted on this path either.)
-    if (run.act >= R.ACTS) fadeOutThen(() => showBossSplash(bossName, showVictory));
-    else fadeOutThen(() => showBossSplash(bossName, () => showReward(rewards, result, 'boss')));
+    // RL3: every boss win ends the expedition — no card reward (you'd pick a
+    // card and immediately go home). World 4 rolls the anthem credits first;
+    // duck worlds go splash → settlement (where pets + coins bank).
+    if (run.act >= R.WORLDS) fadeOutThen(() => showBossSplash(bossName, showVictory));
+    else fadeOutThen(() => showBossSplash(bossName, () => showRunEnd(true)));
   } else if (combatKind === 'elite' && rewards.relic) {
     const rid = rewards.relic;
     rewards.relic = null;
     rewards.relicCollected = rid;
     run.relics.push(rid);
     coachTip('relic', 'Farm Treasures work the whole run. Collect them!');
-    fadeOutThen(() => showVictoryBeat(st, 'elite', () => showRelicPop(rid, () => showReward(rewards, result, 'elite'))));
+    const thenPet = (fn) => (rewards.pet ? () => showPetPop(rewards.pet, fn) : fn);
+    fadeOutThen(() => showVictoryBeat(st, 'elite', thenPet(() => showRelicPop(rid, () => showReward(rewards, result, 'elite')))));
   } else {
-    fadeOutThen(() => showVictoryBeat(st, combatKind, () => showReward(rewards, result, combatKind)));
+    const thenPet = (fn) => (rewards.pet ? () => showPetPop(rewards.pet, fn) : fn);
+    fadeOutThen(() => showVictoryBeat(st, combatKind, thenPet(() => showReward(rewards, result, combatKind))));
   }
 }
 
@@ -1497,21 +1759,22 @@ function showRelicPop(relicId, onDone) {
   }, { dismissable: false });
 }
 
-// the story beats between acts (copy pending James's word pass — REVIEW.md)
+// the story cards at each world's gate (copy pending James's word pass — REVIEW.md)
 const ACT_CARDS = {
-  1: { sub: 'Trouble is stirring out in the corn.', line: 'Grab your gear, Legend — the Far Fields need you first!' },
-  2: { sub: 'The fields are safe… but night is falling.', line: 'Raccoons are raiding the barnyard — the ducks need you!' },
-  3: { sub: 'The sky has gone dark. The Big Twister is coming.', line: 'This is the big one. Defend the farm!' },
+  1: { sub: 'The crops have gone WEIRD.', line: 'Corn with attitude, pumpkins on patrol — and Brownie rules it all!' },
+  2: { sub: 'A meadow full of critters nobody has ever seen.', line: 'They are adorable. They are feisty. Diver guards the pond!' },
+  3: { sub: 'An entire world built brick by brick.', line: 'Watch your step. Seriously. And Harmless is NOT harmless!' },
+  4: { sub: 'The sand shifts. Something hums beneath it.', line: 'The Magnet Menace is real. This is the big one!' },
 };
 
 function showActCard(act, onDone) {
-  const info = R.ACT_INFO[act];
+  const info = R.WORLD_INFO[act];
   const card = ACT_CARDS[act];
   const s = screen(`act-${act}`);
   s.classList.add('act-card');
   s.appendChild(bgLayer(`assets/backgrounds/actcard${act}.jpg`, 'battle-bg'));
   const inner = el('div', 'act-card-inner');
-  inner.appendChild(el('div', 'act-card-kicker', `ACT ${act}`));
+  inner.appendChild(el('div', 'act-card-kicker', `WORLD ${act}`));
   inner.appendChild(el('div', 'event-emoji', info.emoji));
   inner.appendChild(el('h1', 'act-card-name', info.name.toUpperCase()));
   inner.appendChild(el('p', 'act-card-sub', card.sub));
@@ -1562,25 +1825,7 @@ function showReward(rewards, result, kind) {
 }
 
 function finishReward(kind) {
-  if (kind === 'boss') {
-    if (run.act >= R.ACTS) return showVictory();
-    const proceed = () => {
-      R.advanceAct(run);
-      saveRun();
-      toast(run.act === 2
-        ? '🥪 Lunch at the farmhouse! Healed ALL the way up.'
-        : '🍗 Dinner before the storm! Healed ALL the way up.', 2600);
-      showActCard(run.act, showMap);
-    };
-    // boss relic: the jackpot — and it gets a real reveal
-    if (!run.relics.includes('keys_tractor')) {
-      run.relics.push('keys_tractor');
-      showRelicPop('keys_tractor', proceed);
-    } else {
-      proceed();
-    }
-    return;
-  }
+  // (boss wins never reach here in RL3 — the expedition ends at the splash)
   saveRun();
   showMap();
 }
@@ -1875,7 +2120,6 @@ function showDefeat() {
   music.play('title');
   const st = combat; combat = null;
   prevSnap = null;
-  clearSave();
   const s = screen('plain');
   // dusted-but-okay hero art (per hero; 🌧️ until the painting lands)
   s.appendChild(artImg(`assets/ui/ko_${run.hero}.jpg`, '🌧️', 'scene-art ko-art'));
@@ -1889,73 +2133,66 @@ function showDefeat() {
     chip.appendChild(el('div', 'killer-name', `taken down by<br><b>${info.name.toUpperCase()}</b>`));
     s.appendChild(chip);
   }
-  s.appendChild(el('p', 'subtitle recap-line', `Act ${run.act} · Floor ${run.floor} · ⚔️ ${run.stats.fights} fights won`));
+  s.appendChild(el('p', 'subtitle recap-line', `World ${run.act} · Floor ${run.floor} · ⚔️ ${run.stats.fights} fights won`));
   s.appendChild(el('div', 'speaker-line', `"${nextLossLine()}" — Coach James`));
-  const b = el('button', 'btn', '🌱 Try Again');
-  b.onclick = showTitle;
+  // Runs end, progress doesn't: coins + pets bank on the way home
+  const b = el('button', 'btn', '🏡 Head home');
+  b.onclick = () => showRunEnd(false);
   s.appendChild(b);
-  run = null;
 }
 
 function showVictory() {
+  // World 4 conquered — THE game victory. Settle FIRST (credits are long;
+  // closing the tab mid-anthem must never lose the banked run), then roll.
   const heroId = run.hero;
   const p = loadProfile();
   const firstWin = !(p.wins[heroId] > 0);
   p.wins[heroId] = (p.wins[heroId] || 0) + 1;
   saveProfile(p);
-  clearSave();
+  const settled = settleExpedition(true);
   // THE CROWN — first win per hero rolls the synced-lyric anthem credits;
-  // winning with BOTH big brothers unlocks the bonus finale on top.
-  const bothNow = p.wins.aaron > 0 && p.wins.wyatt > 0 && !p.bonusSeen;
-  if (bothNow) prefetch(['assets/audio/anthem_both.mp3', 'assets/audio/anthem_both.lrc']); // the finale follows — have it ready
+  // winning with ALL THREE Legends unlocks the bonus finale on top.
+  const allNow = p.wins.aaron > 0 && p.wins.wyatt > 0 && p.wins.liam > 0 && !p.bonusSeen;
+  if (allNow) prefetch(['assets/audio/anthem_all.mp3', 'assets/audio/anthem_all.lrc']); // the finale follows — have it ready
   const rollBonus = () => {
-    if (bothNow) {
+    if (allNow) {
       p.bonusSeen = true;
       saveProfile(p);
-      creditsRoll('both', { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId));
+      creditsRoll('all', { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId, settled));
     } else {
-      showCrownScreen(heroId);
+      showCrownScreen(heroId, settled);
     }
   };
   if (firstWin) creditsRoll(heroId, { el, artImg, sfx, REDUCED }, rollBonus);
   else rollBonus();
 }
 
-function showCrownScreen(heroId) {
+function showCrownScreen(heroId, settled) {
   const p = loadProfile();
   music.play(`anthem_${heroId}`);
   const s = screen('act-1');
   s.appendChild(el('div', 'crown', '👑'));
-  s.appendChild(el('h1', '', 'THE FARM IS SAFE!'));
-  const twisterFinale = !lastBossKeys.includes('thunder');
-  const VICTORY_LINES = twisterFinale ? {
-    wyatt: '"The Big Twister itself couldn\'t catch him. WYATT THE SPEEDY — Legend of Rolfe!" 🌪️⚡',
-    aaron: '"He looked the Big Twister dead in the eye — and the twister blinked. AARON THE STRONG — the Lil Tornado himself!" 🌪️💪',
-    liam: '"The Big Twister took one whiff of THE BLOWOUT and surrendered on the spot. LIAM THE LITTLE — the tiniest Legend of Rolfe!" 🌪️🍼',
-  } : {
-    wyatt: '"Thunder AND Lightning — and neither one could touch him. WYATT THE SPEEDY — Legend of Rolfe!" ⛈️⚡',
-    aaron: '"Thunder boomed. Lightning cracked. Aaron flexed. The storm apologized. AARON THE STRONG!" ⛈️💪',
-    liam: '"Thunder and Lightning met THE BLOWOUT. The storm has not stopped running. LIAM THE LITTLE!" ⛈️🍼',
+  s.appendChild(el('h1', '', 'THE WEIRDOS ARE BEATEN!'));
+  const VICTORY_LINES = {
+    wyatt: '"The Magnet threw everything it had — and hit nothing but breeze. WYATT THE SPEEDY — Legend of the Worlds!" 🧲⚡',
+    aaron: '"The sand fell. The Magnet stared. Aaron stared back harder. AARON THE STRONG!" 🧲💪',
+    liam: '"The Magnet Menace pulled with all its might… and got a diaper stuck to it. LIAM THE LITTLE!" 🧲🍼',
   };
   s.appendChild(el('div', 'speaker-line', VICTORY_LINES[heroId]));
-  if (p.wins.aaron > 0 && p.wins.wyatt > 0) {
-    s.appendChild(el('div', 'speaker-line', '🏆 <b>BOTH LEGENDS HAVE DEFENDED THE FARM!</b><br>Rusty barks twice. Goldie nods, once. Somewhere, the ducks are cheering.'));
+  if (p.wins.aaron > 0 && p.wins.wyatt > 0 && p.wins.liam > 0) {
+    s.appendChild(el('div', 'speaker-line', '🏆 <b>ALL THREE LEGENDS HAVE BEATEN THE WORLDS!</b><br>Rusty barks twice. The ducks quack in salute. The barn has never been prouder.'));
   }
   const again = el('button', 'btn secondary', '🎬 Watch your credits again');
-  again.onclick = () => creditsRoll(heroId, { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId));
+  again.onclick = () => creditsRoll(heroId, { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId, settled));
   s.appendChild(again);
-  if (p.wins.wyatt > 0 && p.wins.aaron > 0) {
-    const both = el('button', 'btn secondary', '👑👑 Watch the double-legend finale');
-    both.onclick = () => creditsRoll('both', { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId));
-    s.appendChild(both);
+  if (p.wins.wyatt > 0 && p.wins.aaron > 0 && p.wins.liam > 0) {
+    const allBtn = el('button', 'btn secondary', '👑👑👑 Watch the triple-legend finale');
+    allBtn.onclick = () => creditsRoll('all', { el, artImg, sfx, REDUCED }, () => showCrownScreen(heroId, settled));
+    s.appendChild(allBtn);
   }
-  const b = el('button', 'btn', '🌱 Play Again');
-  b.onclick = () => { run = null; showHeroSelect(); };
+  const b = el('button', 'btn gold', '🚜 Back to the Farm');
+  b.onclick = () => (settled ? renderSettlement(settled) : showFarm());
   s.appendChild(b);
-  const t = el('button', 'btn secondary', '🏠 Title');
-  t.onclick = () => { run = null; showTitle(); };
-  s.appendChild(t);
-  run = null;
 }
 
 // ---------- boot ----------
@@ -2014,15 +2251,17 @@ document.addEventListener('click', (ev) => {
   }
 });
 // #credits-<hero> previews an ending anytime (dev/testing; harmless for kids)
-const creditsPreview = /^#credits-(wyatt|aaron|liam|both)$/.exec(location.hash);
+const creditsPreview = /^#credits-(wyatt|aaron|liam|all)$/.exec(location.hash);
 if (creditsPreview) creditsRoll(creditsPreview[1], { el, artImg, sfx, REDUCED }, () => showTitle());
 else showTitle();
 
 // e2e/debug handle (+ dev screen-jumps for tests/screenshots — harmless in play)
 window.__RL2 = {
   get run() { return run; }, get combat() { return combat; }, get wakeHeld() { return !!wakeLock; }, R, C, showTitle,
+  get farm() { return farm; },
+  reloadFarm() { farm = F.deserializeFarm(localStorage.getItem(FARM_KEY)) || F.newFarm(); },
   dev: {
-    start(heroId = 'wyatt', seed = 4242) { run = R.newRun(heroId, seed); showMap(); },
+    start(heroId = 'wyatt', seed = 4242, world = 1) { run = R.newRun(heroId, seed, { world }); showMap(); },
     enter(type, arg) {
       if (!run) this.start();
       const rng = makeRng(99);

@@ -11,14 +11,22 @@ import { makeRng } from './rng.js';
 import { generateActMap, reachableIds, BOSS_ID } from './map.js';
 
 export const FLOORS_PER_ACT = 12;
-export const ACTS = 3;
+// RL3 STRUCTURE: a run is ONE expedition into ONE world (the boys' model: go to
+// a world, fight its weirdos, calm its duck at the top). The `act` field on a
+// run holds the WORLD number 1–4 — kept under its old name so all act-keyed
+// theming (act-N CSS, mapN assets, mapN music) maps 1:1 onto worlds.
+export const WORLDS = 4;
 
-export const ACT_INFO = {
-  1: { name: 'The Far Fields', emoji: '🌅', time: 'morning' },
-  2: { name: 'The Barnyard', emoji: '🦆', time: 'dusk' },
-  3: { name: 'The Storm', emoji: '🌩️', time: 'night' },
+export const WORLD_INFO = {
+  1: { name: 'The Crop Kingdom', emoji: '🌽', time: 'morning', duck: 'Brownie' },
+  2: { name: 'Critter Meadow', emoji: '🐾', time: 'day', duck: 'Diver' },
+  3: { name: 'Bricktopia', emoji: '🧱', time: 'dusk', duck: 'Harmless' },
+  4: { name: 'The Kinetic Sandbox', emoji: '🧲', time: 'night', duck: null }, // the Magnet Menace waits here
 };
 
+// Encounter pools per world. NOTE (build scaffolding): worlds 1–3 currently
+// borrow RL2's act pools while the World-of-Weirdos bestiary lands world by
+// world — each world's section below gets replaced with its real weirdo cast.
 export const ENCOUNTERS = {
   1: {
     easy: [['gopher'], ['roly_poly', 'roly_poly'], ['crow'], ['mud_blob_m', 'mud_blob_s']],
@@ -38,12 +46,19 @@ export const ENCOUNTERS = {
     elite: [['thunderhead'], ['ghost_wind'], ['wind_funnel']],
     boss: [['big_twister'], ['thunder', 'lightning']],
   },
+  4: {
+    easy: [['ball_lightning', 'ball_lightning', 'ball_lightning'], ['flooding_creek'], ['debris_tangle', 'hail_cloud']],
+    hard: [['passing_squall'], ['waltzing_weasel'], ['possum_defender', 'possum_healer'], ['hail_cloud', 'ball_lightning']],
+    elite: [['thunderhead'], ['ghost_wind'], ['wind_funnel']],
+    boss: [['big_twister']],
+  },
 };
 
 // ---------- run creation ----------
 
 export function newRun(heroId, seed, opts = {}) {
   const hero = HEROES[heroId];
+  const world = opts.world || 1;
   const run = {
     v: 3, seed, rngCalls: 0,
     hero: heroId, hp: hero.hp, maxHp: hero.hp,
@@ -55,8 +70,8 @@ export function newRun(heroId, seed, opts = {}) {
     deck: [...hero.starter.map((id) => makeCard(id)), ...petDeckCards(opts.pet)],
     relics: [hero.relic],
     counters: {}, // cross-fight counters (slingshot, sunflower resets per fight in combat state? sunflower is per-fight in StS; keep per-fight by clearing at combat start)
-    act: 1, floor: 0,
-    map: generateActMap(seed, 1),
+    act: world, floor: 0, // `act` = WORLD number (see the note atop this file)
+    map: generateActMap(seed, world),
     pos: null, trail: [],
     skipNextFloor: false,
     pendingRemove: false,
@@ -261,22 +276,9 @@ export function restPractice(run, cardUid) {
   return true;
 }
 
-// ---------- act / run progression ----------
-
-export function advanceAct(run) {
-  if (run.act >= ACTS) return false;
-  run.act += 1;
-  run.floor = 0;
-  run.map = generateActMap(run.seed, run.act);
-  run.pos = null;
-  run.trail = [];
-  run.seenEvents = [];
-  // A full meal between acts — lunch after act 1, dinner after act 2 — heals
-  // you ALL the way up, exactly like StS's between-act rest (James's call
-  // Sun 2026-08-03; hard mode lives in the fights, not the transitions).
-  run.hp = run.maxHp;
-  return true;
-}
+// ---------- run progression ----------
+// RL3: no act advancement — beating the world's boss completes the run.
+// The farm (js/farm.js settleRun + beatWorld) handles what happens next.
 
 // ---------- save / load (localStorage-friendly JSON) ----------
 

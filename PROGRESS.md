@@ -20,3 +20,16 @@
 **Tests: unit 1688/1688 green · selfplay ALL CLEAR** (petless lanes unchanged).
 
 **Next**: Phase 1c — the Farm hub UI in game.js: farm screen (barn + pool with pats), Barn Book, shop screen, equip picker, run-end settlement flow ("banked 87 coins, Whiskers moved in!"). Then harness pet-lane modeling.
+
+## 2026-08-16 · Stage A — THE RL3 GAME LOOP IS ALIVE (Phase 1 complete)
+
+- **Full new flow shipped**: title → **Farm hub** (coins, equipped buddy) → Barn (pats! fish pool! a certain ritual…) → Barn Book (silhouette collection) → Farm Shop (Battle Buddies · barn/pool expansions) → world select (4-world ladder, locks) → hero select (all three Legends public) → boon → 12-floor world expedition → duck-boss splash → **settlement** (coins bank + pets move in, win OR lose) → back to the farm. World 4 boss → anthem credits (settles BEFORE the roll — closing mid-anthem can't lose progress).
+- **Pets fight visibly**: battle-buddy chip with intent text ("Every 3rd turn: … — in 2 turns"), proc jiggle + name floaty per action, Mystery gift floaties. Legibility canon extended to pets.
+- **Run = one world** (`run.act` = world number; act-N theming maps 1:1). advanceAct deleted; run save v3.
+- **Storage keys rl3_*** — RL2 and RL3 share the jmoranii.github.io origin, and localStorage is per-origin: reusing rl2_* keys would have corrupted BOTH games' saves. Caught before first deploy.
+- **The secret is live** (spec in CLAUDE.md §Cast): e2e proves zero pre-unlock tell (no gate element, no Book entry, no llama string), wrong/interrupted pat orders summon nothing, the true ritual works, unlock persists. RL2's beacon dot is gone; its e2e assertion is INVERTED.
+- **Music: 12/15 tracks generated + downloaded** (title, farm, map1-3, elite, duckboss, finalboss + all four anthems — take 1, new download policy); map4/battle/victory retrying (captcha transients, 0 credits).
+- Selfplay: per-world sweep on provisional Stage-A rails (W1 ~96% / W2-4 ~0% with borrowed RL2 pools — exactly why Stage B rewrites the bestiary per world).
+- **Tests: unit 1698/1698 · e2e 113/113 both engines.**
+
+**Next**: Stage B — the World-of-Weirdos bestiary: 4 world casts with world-scaled stats, 3 duck bosses with personality mechanics, THE KINETIC SAND MONSTER (limbs → shed → helpless magnet), stagger foreshadowing, Weirdness ladder. Then Phase 3 balance to the 20–30 fresh band.

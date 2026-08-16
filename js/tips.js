@@ -75,8 +75,8 @@ export const LOSS_LINES = [
   "One more run? The barn's counting on you.",
 ];
 export function nextLossLine(storage = localStorage) {
-  const i = (Number(storage.getItem('rl2_lossidx')) || 0) % LOSS_LINES.length;
-  storage.setItem('rl2_lossidx', String(i + 1));
+  const i = (Number(storage.getItem('rl3_lossidx')) || 0) % LOSS_LINES.length;
+  storage.setItem('rl3_lossidx', String(i + 1));
   return LOSS_LINES[i];
 }
 
@@ -91,7 +91,7 @@ export function nextTip(heroId, storage = localStorage) {
   });
   if (!hero.length) pool.push(...TIPS_GENERAL);
   for (const t of TIPS_GENERAL.slice(hero.length * per)) pool.push(t);
-  const key = `rl2_tipidx_${heroId}`;
+  const key = `rl3_tipidx_${heroId}`;
   const idx = (Number(storage.getItem(key)) || 0) % pool.length;
   storage.setItem(key, String(idx + 1));
   return pool[idx];

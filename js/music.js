@@ -1,8 +1,8 @@
-// Rolfe Legends 2 — background music. Looping tracks with crossfade, separate from SFX.
+// Rolfe Legends 3 — background music. Looping tracks with crossfade, separate from SFX.
 // Tracks live at assets/audio/<name>.mp3. Missing files no-op gracefully (drop-in like art).
 // Browser autoplay policy: nothing plays until unlock() is called from a user gesture.
 
-const TRACKS = ['title', 'map1', 'map2', 'map3', 'battle', 'elite', 'boss', 'victory', 'anthem_wyatt', 'anthem_aaron', 'anthem_liam', 'anthem_both'];
+const TRACKS = ['title', 'farm', 'map1', 'map2', 'map3', 'map4', 'battle', 'elite', 'duckboss', 'finalboss', 'victory', 'anthem_wyatt', 'anthem_aaron', 'anthem_liam', 'anthem_all'];
 const VOL = 0.45;            // music sits under SFX
 const FADE_MS = 600;
 

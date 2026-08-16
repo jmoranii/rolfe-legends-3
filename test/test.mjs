@@ -891,19 +891,20 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
     }
     if (node.type === 'boss') break;
   }
-  eq(run.floor, MAP_FLOORS, 'act runs 12 floors');
-  ok(seen.has('boss'), 'act ends with boss');
+  eq(run.floor, MAP_FLOORS, 'a world runs 12 floors');
+  ok(seen.has('boss'), 'the world ends with its boss');
   ok(seen.has('treasure'), 'path passed the treasure row');
   ok(seen.has('rest'), 'path passed the pre-boss rest');
   eq(R.enterMapNode(run, 'nope'), null, 'unreachable node rejected');
-  run.hp = 3;
-  ok(R.advanceAct(run), 'advance to act 2');
-  eq(run.hp, run.maxHp, 'a full meal between acts: healed ALL the way (StS-true)');
-  eq(run.act, 2, 'act advanced');
-  eq(run.floor, 0, 'floor reset');
-  eq(run.pos, null, 'position reset');
-  ok(run.map && run.map.nodes[BOSS_ID], 'fresh act-2 map generated');
-  ok(reachableIds(run.map, null).length >= 2, 'act 2 offers starting nodes');
+  // RL3: runs are one world each — every world number builds a valid expedition
+  for (let w = 1; w <= R.WORLDS; w++) {
+    const wr = R.newRun('wyatt', 5 + w, { world: w });
+    eq(wr.act, w, `world ${w} expedition starts there`);
+    ok(wr.map && wr.map.nodes[BOSS_ID], `world ${w} map has its boss`);
+    ok(R.WORLD_INFO[w] && R.ENCOUNTERS[w], `world ${w} has info + encounter pools`);
+    ok(R.ENCOUNTERS[w].boss.length >= 1, `world ${w} has a boss pool`);
+  }
+  ok(R.advanceAct === undefined, 'advanceAct is gone — a run IS one world');
 }
 {
   // rewards + draft

@@ -1,4 +1,4 @@
-// Rolfe Legends 2 — synced-lyric victory credits (the RL1 crown-roll trick).
+// Rolfe Legends 3 — synced-lyric victory credits (the RL1 crown-roll trick).
 // Each hero's first win rolls an animated victory lap set to their Suno anthem:
 // as the song names each family member, their painted portrait slides in, and
 // the real lyric lights up word-by-word AS it is sung (Suno word-level timing,
@@ -11,20 +11,17 @@ import * as music from './music.js';
 
 // name triggers → the painted cast (art is drop-in, emoji fallback)
 const CAST = [
-  { re: /^(rusty)/i, art: 'assets/events/treasure_rusty.jpg', emoji: '🐕', name: 'Rusty', title: 'The Goodest Boy' },
-  { re: /^(granny|rockie)/i, art: 'assets/events/rest_granny.jpg', emoji: '🍪', name: 'Granny Rockie', title: 'Cookies & Practice' },
-  { re: /^(poppa|flaj)/i, art: 'assets/events/tractor_ride.jpg', emoji: '🚜', name: 'Poppa Flaj', title: 'Headed That Way Anyhow' },
+  { re: /^(rusty)/i, art: 'assets/pets/rusty.jpg', emoji: '🐕', name: 'Rusty', title: 'The Goodest Boy' },
+  { re: /^(bruno)/i, art: 'assets/pets/bear.jpg', emoji: '🐻', name: 'Bruno', title: 'Nobody objected' },
+  { re: /^(zorp)/i, art: 'assets/pets/alien.jpg', emoji: '👽', name: 'Zorp', title: 'Really really really rare' },
+  { re: /^(brownie)/i, art: 'assets/enemies/duck_brownie.jpg', emoji: '🦆', name: 'Brownie', title: 'Queen of the Crop Kingdom' },
+  { re: /^(diver)/i, art: 'assets/enemies/duck_diver.jpg', emoji: '🦆', name: 'Diver', title: 'Ruler of the Pond' },
+  { re: /^(harmless)/i, art: 'assets/enemies/duck_harmless.jpg', emoji: '🦆', name: 'Harmless', title: 'The Warning Label' },
+  { re: /^(magnet)/i, art: 'assets/enemies/magnet_core.jpg', emoji: '🧲', name: 'The Magnet', title: 'Hums a friendly tune now' },
   { re: /^(coach)/i, art: 'assets/ui/portrait_coach.jpg', emoji: '🧢', name: 'Coach James', title: 'Believed in you all along' },
-  { re: /^(goldie)/i, art: 'assets/events/goldie_gate.jpg', emoji: '🦙', name: 'Goldie', title: 'Goldie knows.' },
-  { re: /^(mom)/i, art: 'assets/events/care_package.jpg', emoji: '📦', name: 'Mom', title: 'The Care Package' },
-  { re: /^(dad)/i, art: 'assets/events/shop_jacob.jpg', emoji: '🛒', name: 'Dad', title: 'The Farm Supply' },
-  { re: /^(brody)/i, art: 'assets/events/brody_garage.jpg', emoji: '🔧', name: 'Uncle Brody', title: 'REAL TALK' },
-  { re: /^(chelsea|kelse)/i, art: 'assets/events/chelsea_kitchen.jpg', emoji: '🍲', name: 'Aunt Chelsea', title: 'The Warm Kitchen' },
-  { re: /^(duck)/i, art: 'assets/events/duck_pond.jpg', emoji: '🦆', name: 'The Ducks', title: 'The Victory Beat' },
-  { re: /^(twister|storm)/i, art: 'assets/enemies/big_twister.jpg', emoji: '🌪️', name: 'The Big Twister', title: 'Sent packing' },
-  // beaten bosses take a bow too (James, Sun 2026-08-02: anything sung with art shows its face)
-  { re: /^mud$/i, art: 'assets/enemies/mud_king.jpg', emoji: '👑', name: 'THE MUD KING', title: 'Shoved into yesterday' },
-  { re: /^raccoons?$/i, art: 'assets/enemies/raccoon_king.jpg', emoji: '🦝', name: 'The Raccoon King', title: 'His crew ran away' },
+  { re: /^(mom)/i, art: 'assets/events/care_package.jpg', emoji: '📦', name: 'Mom', title: 'Back by dinner, hon' },
+  { re: /^(duck)/i, art: 'assets/events/duck_pond.jpg', emoji: '🦆', name: 'The Ducks', title: 'All three, all calm' },
+  { re: /^(pets?|barn)$/i, art: 'assets/ui/barn.jpg', emoji: '🛖', name: 'The Barn', title: 'Everybody home' },
 ];
 
 const HERO_SCENES = {
@@ -37,7 +34,7 @@ const FINALES = {
   wyatt: { big: 'WYATT', sub: 'The Speedy — Legend of Rolfe' },
   aaron: { big: 'AARON', sub: 'The Strong — Legend of Rolfe' },
   liam: { big: 'LIAM', sub: 'The Little — the Tiniest Legend of Rolfe' },
-  both: { big: 'WYATT & AARON', sub: 'The Legends of Rolfe' },
+  all: { big: 'WYATT & AARON & LIAM', sub: 'The Legends of the Farm' },
 };
 
 // caption remaps: Suno mispronounced "Wyatt" and "Liam" (James, Sat 2026-08-02),
@@ -65,7 +62,7 @@ const FALLBACK_LINES = {
   wyatt: ['Out in Rolfe when the morning glows', 'Wyatt laced up, gave the ball a spin', 'WYATT! Speedy as the wind', 'The Big Twister could not catch him', 'The farm is safe, the fields are green', 'WYATT!'],
   aaron: ['Storm rolled in with a hungry sound', 'Aaron the Strong stood his ground', 'AARON! Strong as an oak', 'TORNADO FORM — the twister broke!', 'The barn still stands, the fields are gold', 'AARON!'],
   liam: ['Who is that waddling through the corn?', 'LIAM! LIAM THE LITTLE!', 'And THE BLOWOUT went KA-BOOM!', 'The tiniest legend saved the day', 'LIAM! Hooray!'],
-  both: ['Two brothers on one farm road', 'LEGENDS OF ROLFE! The storm is done', 'WYATT AND AARON — the farm is won!', 'Brothers forever, side by side', 'LEGENDS OF ROLFE!'],
+  all: ['Three little heroes, one big farm', 'WHYATT, AARON, LEEUM, arm in arm', 'World of weirdos, we had fun with you', 'Beat you fair and square now — quack quack, woohoo!', 'LEGENDS OF THE FARM!'],
 };
 
 // ---------- LRC parsing (Suno word-level; line-level tolerated) ----------
@@ -186,10 +183,10 @@ export function deriveBeats(lines, heroId) {
   const beats = [];
   const lastShown = new Map();
   let lastBeat = -3;
-  // the both-finale shows the brothers TOGETHER — either name summons the duo
-  // (separately they'd fall inside each other's cooldown: "Wyatt quick and Aaron strong")
-  const heroes = heroId === 'both'
-    ? [{ re: /^(wyatt|whyatt|aaron)/i, kind: 'duo', name: 'WYATT & AARON', title: 'The Legends of Rolfe' }]
+  // the all-finale shows the trio TOGETHER — any hero name summons the group
+  // (separately they'd fall inside each other's cooldown: "Whyatt, Aaron, Leeum, arm in arm")
+  const heroes = heroId === 'all'
+    ? [{ re: /^(wyatt|whyatt|aaron|liam|leeum)/i, kind: 'duo', name: 'WYATT & AARON & LIAM', title: 'The Legends of the Farm' }]
     : [HERO_SCENES[heroId]];
   for (const line of lines) {
     for (const { w, t } of line.words) {

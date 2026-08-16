@@ -679,3 +679,42 @@ h1, h2 { text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.25); letter-spac
   .enemy .face { width: 96px; height: 96px; font-size: 2.6rem; }
   .enemy-row { gap: 14px; }
 }
+
+/* ================= RL3: the farm, worlds, pets ================= */
+/* act-4 = World 4, The Kinetic Sandbox: night-purple with a magnetic hum */
+.screen.act-4 { background: linear-gradient(#160d20 0%, #3a234a 55%, #4a3423 100%); color: #f0e8f7; }
+
+.farm-screen h2 { margin-top: .4rem; }
+.equip-row { display: flex; align-items: center; gap: .6rem; justify-content: center; margin: .3rem 0 .5rem; }
+.btn-sm { padding: .35rem .7rem; font-size: .85rem; }
+
+.barn-section { margin: .8rem 0 .3rem; opacity: .9; }
+.barn-grid { display: flex; flex-wrap: wrap; gap: .55rem; justify-content: center; }
+.barn-pet { width: 92px; cursor: pointer; text-align: center; background: rgba(255,255,255,.07); border-radius: 14px; padding: .45rem .3rem; transition: transform .15s; }
+.barn-pet:active { transform: scale(.94); }
+.barn-pet-name { font-size: .72rem; font-weight: 700; margin-top: .25rem; }
+.pet-face { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; background: rgba(255,255,255,.1); }
+.pet-face-sm { width: 40px; height: 40px; font-size: 1.4rem; }
+.pet-mystery { opacity: .55; }
+.book-unknown { opacity: .6; }
+
+.world-card { display: flex; align-items: center; gap: .8rem; text-align: left; background: rgba(255,255,255,.09); border: 2px solid rgba(255,255,255,.18); border-radius: 16px; padding: .7rem .9rem; margin: .45rem auto; max-width: 420px; cursor: pointer; transition: transform .15s; }
+.world-card:active { transform: scale(.97); }
+.world-card .world-emoji { font-size: 2rem; }
+.world-locked { opacity: .5; cursor: default; }
+
+.settle-lines { margin: .6rem auto; max-width: 420px; text-align: left; background: rgba(255,255,255,.07); border-radius: 14px; padding: .6rem .9rem; }
+.settle-lines p { margin: .35rem 0; }
+
+.floaty.floaty-heart { color: #ff7ab0; font-size: 1.5rem; }
+
+/* the battle buddy chip — the pet's intent reads like an enemy's */
+.pet-chip { display: flex; align-items: center; gap: .5rem; margin: .25rem auto .1rem; background: rgba(255,255,255,.10); border: 1.5px solid rgba(255,255,255,.22); border-radius: 999px; padding: .25rem .8rem .25rem .3rem; color: inherit; font: inherit; cursor: pointer; }
+.pet-chip-txt { text-align: left; font-size: .78rem; line-height: 1.15; }
+.pet-intent { opacity: .8; font-size: .72rem; }
+.pet-chip.proc { animation: relicjiggle calc(var(--fx, 1) * .6s) ease; }
+
+/* Goldie at the gate. She renders ONLY after the ritual — there is no pre-unlock
+   styling, hotspot, cursor hint, or placeholder anywhere. */
+.goldie-gate { position: fixed; bottom: 14px; right: 16px; font-size: 2.3rem; cursor: pointer; z-index: 3; animation: goldiewander 1.2s ease; }
+@keyframes goldiewander { from { transform: translateX(80px); opacity: 0; } to { transform: none; opacity: 1; } }

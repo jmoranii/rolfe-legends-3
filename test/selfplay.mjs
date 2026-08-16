@@ -148,8 +148,8 @@ function playEvent(run, key, rng) {
   }
 }
 
-function simulateRun(heroId, seed) {
-  const run = R.newRun(heroId, seed);
+function simulateRun(heroId, seed, world = 1, petId = null) {
+  const run = R.newRun(heroId, seed, { world, pet: petId });
   const rng = makeRng(seed);
   // coach boon
   const boons = R.coachBoons(run, rng);
@@ -180,9 +180,8 @@ function simulateRun(heroId, seed) {
       if (picked) run.deck.push(makeCard(picked));
       if (rewards.relic) run.relics.push(rewards.relic);
       if (node.type === 'boss') {
-        if (run.act >= R.ACTS) return { won: true, act: 3, floor: run.floor, deckIds: run.deck.map((c) => c.id) };
-        if (!run.relics.includes('keys_tractor')) run.relics.push('keys_tractor');
-        R.advanceAct(run);
+        // RL3: the world's boss falls → the expedition is WON
+        return { won: true, act: run.act, floor: run.floor, deckIds: run.deck.map((c) => c.id) };
       }
     } else if (node.type === 'shop') {
       const shop = node.shop;
@@ -213,29 +212,38 @@ function simulateRun(heroId, seed) {
 }
 
 // ---------- sweep ----------
+// RL3: a run is one world. Each hero sweeps every world on a FRESH profile
+// (no pet — the pet-equipped lane lands with the Phase 3 balance pass).
+const WORLD_RUNS = Math.max(25, Math.floor(RUNS / R.WORLDS));
 const report = {};
 let stalls = 0;
 for (const hero of ['aaron', 'wyatt', 'liam']) {
-  const res = { wins: 0, deaths: [], actReached: [0, 0, 0], winDecks: {} };
-  for (let i = 0; i < RUNS; i++) {
-    const out = simulateRun(hero, 1000 + i * 17 + (hero === 'wyatt' ? 7 : 0));
-    if (out.won) {
-      res.wins++;
-      for (const id of out.deckIds || []) {
-        if (CARDS[id].rarity !== 'starter') res.winDecks[id] = (res.winDecks[id] || 0) + 1;
-      }
-    } else { res.deaths.push(out); res.actReached[out.act - 1]++; if (out.stall) stalls++; }
+  const res = { perWorld: {}, wins: 0, runs: 0, winDecks: {} };
+  for (let w = 1; w <= R.WORLDS; w++) {
+    const ww = { wins: 0, deaths: [] };
+    for (let i = 0; i < WORLD_RUNS; i++) {
+      const out = simulateRun(hero, 1000 + i * 17 + w * 271 + (hero === 'wyatt' ? 7 : 0), w);
+      res.runs++;
+      if (out.won) {
+        ww.wins++; res.wins++;
+        for (const id of out.deckIds || []) {
+          if (CARDS[id].rarity !== 'starter') res.winDecks[id] = (res.winDecks[id] || 0) + 1;
+        }
+      } else { ww.deaths.push(out); if (out.stall) stalls++; }
+    }
+    res.perWorld[w] = ww;
   }
   report[hero] = res;
 }
 
-console.log(`\n=== Rolfe Legends 2 selfplay — ${RUNS} runs per hero ===`);
+console.log(`\n=== Rolfe Legends 3 selfplay — ${WORLD_RUNS} runs per hero per world ===`);
 for (const hero of Object.keys(report)) {
   const r = report[hero];
-  const wr = (r.wins / RUNS * 100).toFixed(1);
-  console.log(`\n${hero.toUpperCase()}: winrate ${wr}%  (deaths by act: ${r.actReached.join(' / ')})`);
+  const bits = [];
+  for (let w = 1; w <= R.WORLDS; w++) bits.push(`W${w} ${(r.perWorld[w].wins / WORLD_RUNS * 100).toFixed(0)}%`);
+  console.log(`\n${hero.toUpperCase()}: ${bits.join(' · ')}`);
   const byEnemy = {};
-  for (const d of r.deaths) byEnemy[d.by] = (byEnemy[d.by] || 0) + 1;
+  for (let w = 1; w <= R.WORLDS; w++) for (const d of r.perWorld[w].deaths) byEnemy[d.by] = (byEnemy[d.by] || 0) + 1;
   const top = Object.entries(byEnemy).sort((a, b) => b[1] - a[1]).slice(0, 6);
   console.log('  top killers: ' + (top.map(([k, n]) => `${k}×${n}`).join(', ') || 'none'));
 }
@@ -260,20 +268,22 @@ for (const hero of Object.keys(report)) {
   console.log(`  ${hero}: ${top.join(' · ')}`);
 }
 
-// ---------- verdict rails (25–35% band — James re-targeted Sun 2026-08-02: "I want this game to be hard") ----------
-// Design target: every hero close to 30% winrate. At n≥300 sampling noise is
-// ~±3%, so the hard rail is band ±2%. Smaller n (quick local runs) gets a
-// looser guard so it stays useful without flaking.
+// ---------- verdict rails ----------
+// RL3 TARGETS (Wyatt's harder-than-RL2 spec, DESIGN.md): fresh-profile hero
+// ~25% (rails 20–30) per world at final tuning, maxed-farm ~40%.
+// STAGE-A SCAFFOLDING: worlds still run RL2's borrowed pools, so winrate rails
+// are PROVISIONAL-WIDE (catastrophe-only). The Phase 3 balance pass re-tightens
+// them to [0.18, 0.32] at n≥300 — do not ship with the wide band.
 let bad = false;
-const [lo, hi] = RUNS >= 300 ? [0.23, 0.37] : [0.18, 0.42];
+const total = (h) => report[h].wins / report[h].runs;
 for (const hero of ['aaron', 'wyatt', 'liam']) {
-  const wr = report[hero].wins / RUNS;
-  if (wr < lo) { console.log(`RAIL FAIL: ${hero} winrate ${(wr * 100).toFixed(1)}% < ${lo * 100}% — below the 25–35 band`); bad = true; }
-  if (wr > hi) { console.log(`RAIL FAIL: ${hero} winrate ${(wr * 100).toFixed(1)}% > ${hi * 100}% — above the 25–35 band`); bad = true; }
+  const w1 = report[hero].perWorld[1].wins / WORLD_RUNS;
+  if (w1 < 0.05) { console.log(`RAIL FAIL: ${hero} world-1 winrate ${(w1 * 100).toFixed(1)}% — a fresh kid can never get going`); bad = true; }
+  if (total(hero) > 0.95) { console.log(`RAIL FAIL: ${hero} overall ${(total(hero) * 100).toFixed(1)}% — no challenge anywhere`); bad = true; }
 }
 if (stalls > RUNS * 0.1) { console.log(`RAIL FAIL: ${stalls} stalled fights`); bad = true; }
 if (pacing.fight > 7) { console.log(`RAIL FAIL: normal fights average ${pacing.fight.toFixed(1)} turns (bore threshold 7)`); bad = true; }
 if (pacing.elite > 11) { console.log(`RAIL FAIL: elites average ${pacing.elite.toFixed(1)} turns (bore threshold 11)`); bad = true; }
 if (pacing.boss > 16) { console.log(`RAIL FAIL: bosses average ${pacing.boss.toFixed(1)} turns (bore threshold 16)`); bad = true; }
-console.log(bad ? '\nVERDICT: NEEDS TUNING' : '\nVERDICT: ALL CLEAR (25–35 hard-mode band)');
+console.log(bad ? '\nVERDICT: NEEDS TUNING' : '\nVERDICT: ALL CLEAR (provisional Stage-A rails — Phase 3 tightens to the 20–30 band)');
 process.exit(bad ? 1 : 0);
