@@ -1086,6 +1086,134 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(!draftPool('liam').some((id) => draftPool('aaron').includes(id) || draftPool('wyatt').includes(id)), 'liam pool disjoint');
 }
 
+// ---------- RL3: pet companions (Aaron's loop + Wyatt's bear) ----------
+{
+  const { PETS, PET_KEYS, droppablePets, barnBookPets, petDropRoll, petDeckCards, petIntent, DROP_CHANCE, ALIEN_CHANCE } = await import('../js/pets.js');
+
+  // every pet is coherent: rarity, habitat, companion with a known cadence
+  for (const k of PET_KEYS) {
+    const p = PETS[k];
+    ok(['common', 'uncommon', 'rare', 'legendary'].includes(p.rarity), `${k}: valid rarity`);
+    ok(['barn', 'pool'].includes(p.habitat), `${k}: valid habitat`);
+    ok(p.companion && (p.companion.every === 'first' || p.companion.every >= 1), `${k}: companion cadence`);
+    ok(petIntent(k, 1) && petIntent(k, 4), `${k}: intent text renders (legibility canon)`);
+    for (const cid of [p.card, p.card2].filter(Boolean)) {
+      ok(CARDS[cid] && CARDS[cid].hero === 'pet', `${k}: signature card ${cid} exists as hero:'pet'`);
+    }
+  }
+  // fish live in the pool (the boys' realism spec), bear grants his card instead of decking it
+  ok(PETS.goldfish.habitat === 'pool' && PETS.catfish.habitat === 'pool', 'fish live in the fish pool');
+  ok(PETS.bear.card === null, "bear decks NO card — he hands you Claw Scratch himself (Wyatt's spec)");
+
+  // pet cards never leak into any hero draft pool or shop draft
+  for (const hero of ['aaron', 'wyatt', 'liam']) {
+    ok(!draftPool(hero).some((id) => CARDS[id].hero === 'pet'), `${hero}: no pet cards in draft pool`);
+  }
+
+  // ducks + goldie never drop from fights; goldie absent from the Barn Book pre-unlock
+  ok(!droppablePets().some((k) => PETS[k].source), 'boss/secret pets are not in drop tables');
+  ok(!barnBookPets({ farm: { pets: [] } }).includes('goldie'), 'no-tell: Goldie absent from Barn Book pre-unlock');
+  ok(barnBookPets({ farm: { pets: ['goldie'] } }).includes('goldie'), 'Goldie appears in the Book once unlocked');
+  ok(barnBookPets({ farm: { pets: [] } }).includes('diver'), 'duck super-pets ARE Book-visible (kids should chase them)');
+
+  // deck injection: equipping a pet adds its signature card(s) to a fresh run
+  const petRun = R.newRun('aaron', 7, { pet: 'pig' });
+  ok(petRun.pet === 'pig' && petRun.deck.some((c) => c.id === 'belly_bump'), 'equipped pig decks Belly Bump');
+  ok(R.newRun('aaron', 7).deck.every((c) => CARDS[c.id].hero !== 'pet'), 'petless run has no pet cards');
+  ok(R.newRun('aaron', 7, { pet: 'bear' }).deck.every((c) => c.id !== 'claw_scratch'), 'bear decks nothing');
+
+  // companion cadences in combat
+  const sim = (petId, turns) => {
+    const run = R.newRun('aaron', 11, { pet: petId });
+    const st = C.startCombat(run, ['flooding_creek'], makeRng(11));
+    for (let t = 1; t < turns; t++) { C.beginEnemyPhase(st); while (st.phase === 'enemy' && !st.over) C.stepEnemyAction(st); }
+    return st;
+  };
+  ok(sim('bear', 1).hand.some((c) => c.id === 'claw_scratch'), 'bear: Claw Scratch in hand turn 1');
+  ok(sim('bear', 2).hand.filter((c) => c.id === 'claw_scratch').length >= 1, 'bear: fresh Claw Scratch again turn 2');
+  const pigSt = sim('pig', 1);
+  ok(pigSt.hero.block >= 2, 'pig: +2 block turn 1');
+  ok(sim('chicken', 3).hand.some((c) => c.id === 'egg') && !sim('chicken', 1).hand.some((c) => c.id === 'egg'),
+    'chicken: egg on turn 3, not turn 1');
+  ok(sim('rusty', 1).hand.length === 7, 'rusty: turn-1 fetch draws to 7');
+  const gf = sim('goldfish', 1); ok(gf.log.some((l) => l.t === 'pet'), 'goldfish: pet action logged for UI floaties');
+
+  // drop rolls: deterministic, dedupe owned, honor kind chances; alien is legendary-rare
+  {
+    let drops = 0, alien = 0;
+    for (let s = 0; s < 4000; s++) {
+      const got = petDropRoll('fight', makeRng(s), []);
+      if (got) drops += 1;
+      if (got === 'alien') alien += 1;
+    }
+    const rate = drops / 4000;
+    ok(rate > 0.08 && rate < 0.17, `fight drop rate ~12% (got ${(rate * 100).toFixed(1)}%)`);
+    ok(alien > 0 && alien < 100, `alien is really really really rare (${alien}/4000 rolls)`);
+    const allOwned = droppablePets();
+    ok(petDropRoll('elite', makeRng(1), allOwned) === null, 'all droppables owned → no drop');
+    let eliteDrops = 0;
+    for (let s = 0; s < 1000; s++) if (petDropRoll('elite', makeRng(s), [])) eliteDrops += 1;
+    ok(eliteDrops / 1000 > rate, 'elites drop pets more often than normal fights');
+  }
+
+  // fightRewards integration: a run accumulates petsWon, never duplicates
+  {
+    const run = R.newRun('wyatt', 3);
+    run.ownedPets = ['pig', 'chicken'];
+    for (let i = 0; i < 400; i++) R.fightRewards(run, 'elite', makeRng(i));
+    ok(run.petsWon.length > 0, 'elite grind eventually drops pets');
+    ok(new Set(run.petsWon).size === run.petsWon.length, 'no duplicate pet drops in a run');
+    ok(!run.petsWon.includes('pig') && !run.petsWon.includes('chicken'), 'farm-owned pets never re-drop');
+  }
+
+  // new engine ops: heal (Egg), gold (Swipe), pierce (UFO Beam ignores block)
+  {
+    const run = R.newRun('aaron', 5, { pet: 'chicken' });
+    const st = C.startCombat(run, ['flooding_creek'], makeRng(5));
+    st.hero.hp = 10;
+    forceHand(st, ['egg']);
+    C.playCard(st, st.hand[0], null);
+    ok(st.hero.hp === 12, 'Egg heals 2');
+    ok(st.exhaust.some((c) => c.id === 'egg'), 'Egg exhausts');
+    const st2 = C.startCombat(R.newRun('aaron', 5, { pet: 'raccoon' }), ['flooding_creek'], makeRng(5));
+    forceHand(st2, ['five_finger_swipe']);
+    C.playCard(st2, st2.hand[0], st2.enemies[0]);
+    ok(st2.goldRecovered >= 5, 'Swipe pockets gold');
+    const st3 = C.startCombat(R.newRun('aaron', 5, { pet: 'alien' }), ['flooding_creek'], makeRng(5));
+    st3.enemies[0].block = 50;
+    const hp0 = st3.enemies[0].hp;
+    forceHand(st3, ['ufo_beam']);
+    C.playCard(st3, st3.hand[0], st3.enemies[0]);
+    ok(st3.enemies[0].hp <= hp0 - 12, 'UFO Beam ignores Block');
+  }
+
+  // Brownie's mystery: all three outcomes reachable, none crash
+  {
+    const seen = new Set();
+    for (let s = 0; s < 60; s++) {
+      const st = C.startCombat(R.newRun('aaron', s, { pet: 'brownie' }), ['flooding_creek'], makeRng(s));
+      st.hero.hp = Math.max(1, st.hero.hp - 10);
+      forceHand(st, ['mystery_waddle']);
+      C.playCard(st, st.hand[0], null);
+      const m = st.log.find((l) => l.t === 'mystery');
+      if (m) seen.add(m.roll);
+    }
+    ok(seen.size === 3, `Mystery Waddle rolls all 3 gifts (saw: ${[...seen].join(', ')})`);
+  }
+
+  // serialization: pet fields round-trip; petless v2 saves migrate
+  {
+    const run = R.newRun('liam', 9, { pet: 'owl' });
+    run.petsWon.push('cat');
+    const back = R.deserializeRun(R.serializeRun(run));
+    ok(back && back.pet === 'owl' && back.petsWon.includes('cat'), 'pet fields round-trip');
+    const v2 = JSON.parse(R.serializeRun(R.newRun('aaron', 1)));
+    v2.v = 2; delete v2.pet; delete v2.petsWon;
+    const mig = R.deserializeRun(JSON.stringify(v2));
+    ok(mig && mig.v === 3 && mig.pet === null && Array.isArray(mig.petsWon), 'v2 save migrates to v3');
+  }
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

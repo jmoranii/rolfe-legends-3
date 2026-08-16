@@ -1,8 +1,10 @@
-// Rolfe Legends 2 — run layer (pure, no DOM): run creation, Coach James's boon,
+// Rolfe Legends 3 — run layer (pure, no DOM): run creation, Coach James's boon,
 // act maps (StS node graphs — js/map.js), encounters, rewards, shop, rest,
-// treasure, save.
+// treasure, save. RL3: an equipped pet rides the whole run (signature cards in
+// the deck, companion in every fight) and won fights can drop NEW pets.
 
 import { HEROES, CARDS, makeCard, draftPool, RARITY_WEIGHTS } from './cards.js';
+import { petDeckCards, petDropRoll } from './pets.js';
 import { RELICS, relicPool } from './relics.js';
 import { EVENTS, EVENT_KEYS } from './events.js';
 import { makeRng } from './rng.js';
@@ -40,13 +42,17 @@ export const ENCOUNTERS = {
 
 // ---------- run creation ----------
 
-export function newRun(heroId, seed) {
+export function newRun(heroId, seed, opts = {}) {
   const hero = HEROES[heroId];
   const run = {
-    v: 2, seed, rngCalls: 0,
+    v: 3, seed, rngCalls: 0,
     hero: heroId, hp: hero.hp, maxHp: hero.hp,
     gold: 99,
-    deck: hero.starter.map((id) => makeCard(id)),
+    // equipped pet: companion in every fight + its signature cards join the deck
+    // (the bear grants his card in-fight instead — Wyatt's spec; see js/pets.js)
+    pet: opts.pet || null,
+    petsWon: [], // pets that dropped during THIS run; the farm banks them at run end
+    deck: [...hero.starter.map((id) => makeCard(id)), ...petDeckCards(opts.pet)],
     relics: [hero.relic],
     counters: {}, // cross-fight counters (slingshot, sunflower resets per fight in combat state? sunflower is per-fight in StS; keep per-fight by clearing at combat start)
     act: 1, floor: 0,
@@ -168,6 +174,11 @@ export function fightRewards(run, kind, rng) {
   }
   if (kind === 'boss') rewards.gold = rng.range(95, 105);
   rewards.cards = cardDraft(run, rng, 3);
+  // RL3: won fights can drop a pet (Aaron's loop). Owned = farm collection +
+  // everything already won this run; the caller passes farm pets via run.ownedPets.
+  const owned = [...(run.ownedPets || []), ...run.petsWon, ...(run.pet ? [run.pet] : [])];
+  rewards.pet = petDropRoll(kind, rng, owned);
+  if (rewards.pet) run.petsWon.push(rewards.pet);
   return rewards;
 }
 
@@ -275,13 +286,15 @@ export function serializeRun(run) {
 export function deserializeRun(json) {
   try {
     const run = JSON.parse(json);
-    if (!run || run.v !== 2 || !HEROES[run.hero]) return null;
+    if (!run || ![2, 3].includes(run.v) || !HEROES[run.hero]) return null;
     if (!Array.isArray(run.deck) || !run.deck.every((c) => CARDS[c.id])) return null;
     if (!run.map || !run.map.nodes || !run.map.nodes[BOSS_ID]) return null;
     // snacks were cut Sun 2026-08-02 (James: more complexity than value) —
     // scrub them from older saves so a mid-run farm survives the update
     delete run.snacks; delete run.snackSlots;
     run.relics = run.relics.filter((id) => id !== 'lunchbox');
+    // v2 (RL2-era) saves migrate forward: no pet, empty pet-drop ledger
+    if (run.v === 2) { run.v = 3; run.pet = run.pet || null; run.petsWon = run.petsWon || []; }
     return run;
   } catch { return null; }
 }

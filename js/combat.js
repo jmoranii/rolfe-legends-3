@@ -1,10 +1,13 @@
-// Rolfe Legends 2 — pure combat engine (no DOM). Mirrors Slay the Spire rules:
+// Rolfe Legends 3 — pure combat engine (no DOM). Mirrors Slay the Spire rules:
 // 3 energy/turn, draw 5, block expires at turn start, telegraphed intents,
 // Strength/Dexterity/Weak/Vulnerable/Frail/Poison, exhaust, innate, X-cost.
+// RL3 adds PET COMPANIONS: an equipped pet acts on a deterministic cadence at the
+// start of the hero's turn — announced like an enemy intent (legibility canon).
 // Enemies come from js/enemies.js (data + move functions); cards from js/cards.js.
 
 import { CARDS, DIAPERS, cardInfo, makeCard } from './cards.js';
 import { ENEMIES } from './enemies.js';
+import { PETS, petActsThisTurn } from './pets.js';
 
 export const HAND_SIZE = 5;
 export const ENERGY_BASE = 3;
@@ -294,6 +297,7 @@ export function startCombat(run, enemyKeys, rng, { kind = 'fight' } = {}) {
     grown: {}, // per-fight shared card growth (Sticky Hands = Claw scaling), keyed by card id
     goldRecovered: 0, log: [],
     phase: 'hero', queue: [],
+    petId: run.pet || null, // equipped companion (js/pets.js); acts at hero turn start
   };
   for (const k of enemyKeys) spawnEnemy(state, k);
   // deck in: shuffle; innate cards surface at top
@@ -326,6 +330,8 @@ export function startHeroTurn(state) {
   state.attacksThisTurn = 0; state.skillsThisTurn = 0; state.cardsThisTurn = 0;
   relicTurnStart(state);
   orbTurnStart(state);
+  petTurnStart(state);
+  if (state.over) return;
   // powers
   if (h.powers.tornado_form) applyStatus(state, h, 'strength', h.powers.tornado_form);
   if (h.powers.ball_machine) addCardToCombat(state, 'soccer_ball', 1, 'hand');
@@ -337,9 +343,61 @@ export function startHeroTurn(state) {
   if (h.powers.sleight_of_hand) { drawCards(state, 1); state.pendingDiscard += 1; }
 }
 
+// ---------- pet companions (RL3) ----------
+// The equipped pet acts on its cadence at hero turn start, BEFORE the draw, so
+// granted cards (Egg, Claw Scratch) join the hand the kid is about to see.
+// Deterministic cadence; rng only picks targets — harness-friendly by design.
+function petTurnStart(state) {
+  if (!state.petId) return;
+  const def = PETS[state.petId];
+  if (!def || !petActsThisTurn(def, state.turn)) return;
+  const h = state.hero;
+  const rand = () => { const live = livingEnemies(state); return live.length ? state.rng.pick(live) : null; };
+  const heal = (n) => { h.hp = Math.min(h.maxHp, h.hp + n); };
+  const ACTS = {
+    block2: () => { h.block += 2; },
+    block3: () => { h.block += 3; },
+    heal1: () => heal(1),
+    egg: () => addCardToCombat(state, 'egg', 1, 'hand'),
+    clawcard: () => addCardToCombat(state, 'claw_scratch', 1, 'hand'),
+    draw1: () => drawCards(state, 1),
+    draw2: () => drawCards(state, 2),
+    dmg3rand: () => { const e = rand(); if (e) dealDamage(state, e, 3, { src: 'pet' }); },
+    dmg6rand: () => { const e = rand(); if (e) dealDamage(state, e, 6, { src: 'pet' }); },
+    dmg8all: () => { for (const e of livingEnemies(state)) dealDamage(state, e, 8, { src: 'pet' }); },
+    zap3: () => { const e = rand(); if (e) dealDamage(state, e, 3, { src: 'pet', pierce: true }); },
+    weakAll: () => { for (const e of livingEnemies(state)) applyStatus(state, e, 'weak', 1); },
+    poison2rand: () => { const e = rand(); if (e) applyStatus(state, e, 'poison', 2); },
+    goatbutt: () => { const e = rand(); if (e) { dealDamage(state, e, 5, { src: 'pet' }); if (e.hp > 0) applyStatus(state, e, 'vulnerable', 1); } },
+    gold8: () => { state.goldRecovered += 8; },
+    mystery: () => {
+      const roll = state.rng.pick(['block', 'dmg', 'heal']);
+      if (roll === 'block') h.block += 2;
+      else if (roll === 'heal') heal(1);
+      else { const e = rand(); if (e) dealDamage(state, e, 2, { src: 'pet' }); }
+    },
+    stare: () => { const e = rand(); if (e) applyStatus(state, e, 'weak', 1); },
+  };
+  const fn = ACTS[def.companion.act];
+  if (!fn) return;
+  fn();
+  state.log.push({ t: 'pet', pet: state.petId, act: def.companion.act });
+  checkCombatEnd(state);
+}
+
 // ---------- playing cards ----------
 
 export const SPECIALS = {
+  mystery_waddle(state, info) {
+    // Brownie's card: nobody knows what she is — 1 of 3 gifts, chosen by fate.
+    const h = state.hero;
+    const big = info.upgraded;
+    const roll = state.rng.pick(['dmg', 'block', 'heal']);
+    state.log.push({ t: 'mystery', roll });
+    if (roll === 'dmg') { const live = livingEnemies(state); if (live.length) dealDamage(state, state.rng.pick(live), big ? 16 : 12); }
+    else if (roll === 'block') h.block += blockValue(big ? 16 : 12, h);
+    else h.hp = Math.min(h.maxHp, h.hp + (big ? 6 : 4));
+  },
   heavy_haul(state, info, target) {
     const raw = info.base + (state.hero.strength + state.hero.tempStr) * info.strMult;
     let d = raw;
@@ -452,13 +510,15 @@ function runEffects(state, info, target) {
       }
       for (let t = 0; t < times; t++) {
         if (op.allEnemies) {
-          for (const e of livingEnemies(state)) dealDamage(state, e, strapped * mult, { attacker: h });
+          for (const e of livingEnemies(state)) dealDamage(state, e, strapped * mult, { attacker: h, pierce: !!op.pierce });
         } else if (target && target.hp > 0) {
-          dealDamage(state, target, strapped * mult, { attacker: h });
+          dealDamage(state, target, strapped * mult, { attacker: h, pierce: !!op.pierce });
         }
       }
     }
     if (op.block != null) h.block += blockValue(op.block, h);
+    if (op.heal) h.hp = Math.min(h.maxHp, h.hp + op.heal); // pet cards (Egg); heals never overshoot
+    if (op.gold) state.goldRecovered += op.gold; // Bandit Jr.'s swipe — banked on victory
     if (op.draw) drawCards(state, op.draw);
     if (op.discard) state.pendingDiscard += op.discard;
     if (op.energy) h.energy += op.energy;
