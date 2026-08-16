@@ -318,7 +318,7 @@ $CSTYLE
 
 Subject: an old brass garden sprinkler on a wooden post, twisted into a watchful sentry with a single lens-like eye, water jet arcing, soggy straw scattered at its base. Funny-menacing, never scary."
 
-gen boss_brownie assets/originals/enemies/duck_brownie.png 1024x1024 - "Square image, 1024x1024.
+gen boss_brownie assets/originals/enemies/boss_brownie.png 1024x1024 - "Square image, 1024x1024.
 $CSTYLE
 
 Subject: BOSS ART — a completely brown duck of gloriously unidentifiable breed on a throne of hay bales, wearing a slightly crooked wildflower crown, wings spread in royal command, corn subjects bowing at the edges. Regal, mysterious, ridiculous. Big boss energy, funny-menacing, never scary."
@@ -375,7 +375,7 @@ $W2STYLE
 
 Subject: ELITE ART — a small stone totem statue carved like three stacked judgemental critter faces, moss accents, faint glowing eyes, tiny confetti of junk fluttering around it. Ancient and extremely judgy. Funny-menacing, never scary."
 
-gen boss_diver assets/originals/enemies/duck_diver.png 1024x1024 - "Square image, 1024x1024.
+gen boss_diver assets/originals/enemies/boss_diver.png 1024x1024 - "Square image, 1024x1024.
 $W2STYLE
 
 Subject: BOSS ART — a sleek white duck in tiny swim goggles at the tip of a high plank diving board above a meadow pond, wings spread in a perfect pre-dive pose, critters watching in awe from the grass below. Olympic drama. Big boss energy, funny-menacing, never scary."
@@ -447,7 +447,7 @@ $W3STYLE
 
 Subject: ELITE ART — a large minifigure foreman with a plastic hard hat and a blueprint under one arm, mid-speed-build with bricks levitating into place around him, tiny ninja minifigures assembling behind him. Funny-menacing, never scary."
 
-gen boss_harmless assets/originals/enemies/duck_harmless.png 1024x1024 - "Square image, 1024x1024.
+gen boss_harmless assets/originals/enemies/boss_harmless.png 1024x1024 - "Square image, 1024x1024.
 $W3STYLE
 
 Subject: BOSS ART — a glossy black Cayuga duck with an iridescent beetle-green sheen, standing perfectly still and centered atop a fortress of black toy bricks, eyes narrowed to calm slits, a single black feather drifting. The stillness IS the threat. Big boss energy, funny-menacing, never scary."

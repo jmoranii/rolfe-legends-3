@@ -1351,6 +1351,36 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(back.weirdnessUnlocked && back.weirdnessBest[2] === 3, 'ladder state round-trips');
 }
 
+// ---------- art coverage audit (the duck-filename lesson, Sun 2026-08-16) ----------
+// Every renderable key must have its deployed painting — a mismatch silently
+// falls back to emoji, which James caught live on the duck bosses.
+{
+  const artDir = new URL('../assets/enemies/', import.meta.url);
+  const missing = [];
+  const need = new Set();
+  for (let w = 1; w <= R.WORLDS; w++) {
+    for (const pool of [R.ENCOUNTERS[w].easy, R.ENCOUNTERS[w].hard, R.ENCOUNTERS[w].elite, R.ENCOUNTERS[w].boss]) {
+      for (const group of pool) for (const k of group) need.add(k);
+    }
+  }
+  // transform + summon forms that appear mid-fight
+  for (const k of ['rolling_pumpkin_curled', 'compost_blob_s', 'brick_pile', 'sand_blob_s', 'sand_limb', 'magnet_core', 'minifig_ninja', 'dust_bunny']) need.add(k);
+  for (const k of need) {
+    if (!existsSync(new URL(`${k}.jpg`, artDir))) missing.push(k);
+  }
+  eq(missing.join(','), '', 'every fightable weirdo has a deployed painting');
+  const { PET_KEYS } = await import('../js/pets.js');
+  const petMissing = PET_KEYS.filter((k) => !existsSync(new URL(`../assets/pets/${k}.jpg`, import.meta.url)));
+  eq(petMissing.join(','), '', 'every pet has a deployed painting');
+  const bgMissing = [];
+  for (let w = 1; w <= R.WORLDS; w++) {
+    for (const f of [`map${w}`, `battle${w}`, `actcard${w}`]) {
+      if (!existsSync(new URL(`../assets/backgrounds/${f}.jpg`, import.meta.url))) bgMissing.push(f);
+    }
+  }
+  eq(bgMissing.join(','), '', 'every world has map/battle/story-card backdrops');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {
