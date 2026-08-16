@@ -1214,6 +1214,65 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   }
 }
 
+// ---------- RL3: the farm meta-layer (persistence across runs) ----------
+{
+  const F = await import('../js/farm.js');
+  const farm = F.newFarm();
+  ok(F.barnCapacity(farm) === 5, "barn starts at 5 (Aaron's spec)");
+  ok(farm.worlds.unlocked === 1 && farm.coins === 0, 'fresh farm: world 1 only, no coins');
+
+  // shop: both of Aaron's tracks present; can't buy broke; buying works
+  ok(F.shopStock(farm).some((i) => i.id === 'pet_battle'), 'shop sells Battle Buddies');
+  ok(F.shopStock(farm).some((i) => i.id === 'barn_upgrade'), 'shop sells barn expansion');
+  ok(!F.shopBuy(farm, 'pet_battle'), 'no coins → no sale');
+  farm.coins = 1000;
+  ok(F.shopBuy(farm, 'pet_battle') && farm.upgrades.petBattle, 'Battle Buddies unlock');
+  ok(!F.shopStock(farm).some((i) => i.id === 'pet_battle'), 'one-time unlock leaves the shelf');
+  const capBefore = F.barnCapacity(farm);
+  ok(F.shopBuy(farm, 'barn_upgrade') && F.barnCapacity(farm) === capBefore + 3, 'barn expansion adds 3 stalls');
+
+  // adoption: dedupe, habitat caps, fish go to the pool
+  const f2 = F.newFarm();
+  ok(F.adoptPet(f2, 'pig').adopted, 'pig moves into the barn');
+  ok(F.adoptPet(f2, 'pig').reason === 'owned', 'no duplicate pigs');
+  ok(F.adoptPet(f2, 'goldfish').adopted && F.petsIn(f2, 'pool').includes('goldfish'), 'goldfish lives in the pool');
+  for (const k of ['chicken', 'cat', 'puppy', 'sheepdog']) F.adoptPet(f2, k);
+  ok(F.habitatFull(f2, 'barn'), 'barn full at 5');
+  ok(F.adoptPet(f2, 'goat').reason === 'full', 'full barn turns pets away (the shop nudge)');
+  ok(F.adoptPet(f2, 'catfish').adopted, 'pool has room even when the barn is full');
+
+  // equip: gated on the unlock, only owned pets
+  ok(!F.equipPet(f2, 'pig'), 'equip blocked before Battle Buddies');
+  f2.upgrades.petBattle = true;
+  ok(!F.equipPet(f2, 'bear'), 'cannot equip a pet you have not won');
+  ok(F.equipPet(f2, 'pig') && f2.equipped === 'pig', 'equip works after unlock');
+  ok(F.equipPet(f2, null) && f2.equipped === null, 'unequip works');
+
+  // settleRun: coins bank win OR lose; pets move in; overflow reported
+  const f3 = F.newFarm();
+  const lostRun = { gold: 87, petsWon: ['cat', 'owl'] };
+  const s1 = F.settleRun(f3, lostRun, false);
+  ok(s1.banked === 87 && f3.coins === 87, 'a LOST run still banks coins');
+  ok(s1.movedIn.length === 2 && f3.pets.includes('owl'), 'won pets move in even on a loss');
+  for (const k of ['pig', 'chicken', 'puppy']) F.adoptPet(f3, k);
+  const s2 = F.settleRun(f3, { gold: 10, petsWon: ['goat', 'goldfish'] }, true);
+  ok(s2.turnedAway.includes('goat') && s2.movedIn.includes('goldfish'), 'overflow reported; pool pet still fits');
+  ok(f3.stats.runs === 2 && f3.stats.wins === 1, 'run stats tracked');
+
+  // world ladder
+  F.beatWorld(f3, 1);
+  ok(f3.worlds.unlocked === 2 && f3.worlds.beaten.includes(1), 'beating world 1 opens world 2');
+  F.beatWorld(f3, 1);
+  ok(f3.worlds.beaten.length === 1, 'no duplicate beats');
+
+  // save round-trip + forward-safe defaults
+  const back = F.deserializeFarm(F.serializeFarm(f3));
+  ok(back && back.coins === f3.coins && back.pets.join() === f3.pets.join(), 'farm round-trips');
+  const sparse = F.deserializeFarm(JSON.stringify({ v: 1, pets: ['pig'] }));
+  ok(sparse && sparse.upgrades.petBattle === false && sparse.worlds.unlocked === 1, 'sparse profile gets safe defaults');
+  ok(F.deserializeFarm('{"v":1,"pets":["not_a_pet"]}') === null, 'unknown pet id rejects the profile');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

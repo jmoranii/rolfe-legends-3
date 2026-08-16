@@ -10,3 +10,13 @@
 - Build is running IN-CHAT with James + the boys (James's call — no separate /goal session); same ground rules.
 
 **Next**: Phase 1 — the farm meta-layer: profile schema v2 (pets/barn/shop/world unlocks), the Farm hub screen, pet system (companion + signature-card injection), Barn Book, shop tracks, fish pool.
+
+## 2026-08-16 · Phase 1a+1b — Pet engine + farm meta-layer (PURE LAYERS DONE)
+
+**Pets (js/pets.js + engine hooks)** — 18-pet roster: 5 common (Sir Oinks 🐷, Nugget 🐔, Whiskers 🐱, Biscuit 🐶, Bubbles 🐠), 6 uncommon (Patch, Boomer, Bandit Jr., Professor Hoot, Ramona, Mudwhisker), 2 rare (**Bruno the bear** — Wyatt's spec, hands you a Claw Scratch 2×6 EVERY turn instead of decking a card; **Rusty** — Aaron's pick, turn-1 fetch draws 2), legendary **Zorp the alien** (~1/150 wins — "really really really rare"), 3 duck super-pets (boss-only: Diver/Brownie/Harmless), + the secret (spec in CLAUDE.md). Companions act on deterministic cadences at hero-turn start with intent text (legibility canon); signature cards inject at run start, hero:'pet' keeps them out of every draft pool. Drop rolls: fight 12% / elite 30% / boss 40%, rarity-weighted, dedupe vs farm+run. New engine ops: heal, gold, pierce; `mystery_waddle` special. Run save v3 (+v2 migration).
+
+**Farm (js/farm.js)** — persistent profile: coins bank at run end **win or lose**, pets move into barn (cap 5, +3/tier) or fish pool (cap 3, +2/tier — the boys' realism spec), shop = Aaron's two tracks (Battle Buddies 250 / barn expansions 150→800) + pool upgrades, equip gating, world ladder (beat world N's duck → N+1 opens), forward-safe deserialization.
+
+**Tests: unit 1688/1688 green · selfplay ALL CLEAR** (petless lanes unchanged).
+
+**Next**: Phase 1c — the Farm hub UI in game.js: farm screen (barn + pool with pats), Barn Book, shop screen, equip picker, run-end settlement flow ("banked 87 coins, Whiskers moved in!"). Then harness pet-lane modeling.
