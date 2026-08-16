@@ -64,6 +64,7 @@ export function newRun(heroId, seed, opts = {}) {
     // equipped pet: companion in every fight + its signature cards join the deck
     // (the bear grants his card in-fight instead — Wyatt's spec; see js/pets.js)
     pet: opts.pet || null,
+    weirdness: opts.weirdness || 0, // ladder level (0 = normal; unlocks after the Magnet falls)
     petsWon: [], // pets that dropped during THIS run; the farm banks them at run end
     deck: [...hero.starter.map((id) => makeCard(id)), ...petDeckCards(opts.pet)],
     relics: [hero.relic],

@@ -261,9 +261,12 @@ function relicTurnEnd(state) {
 export function spawnEnemy(state, key, opts = {}) {
   const def = ENEMIES[key];
   if (!def) throw new Error(`unknown enemy: ${key}`);
+  // Weirdness ladder: every level makes weirdos beefier (+7% HP) and harder-
+  // hitting (+5%, applied at intent execution + preview so the numbers agree).
+  const wHp = 1 + 0.07 * (state.weirdness || 0);
   const e = {
     key, name: def.name, emoji: def.emoji, artKey: key,
-    maxHp: opts.hp ?? state.rng.range(def.hp[0], def.hp[1]),
+    maxHp: Math.round((opts.hp ?? state.rng.range(def.hp[0], def.hp[1])) * wHp),
     block: 0, strength: 0, weak: 0, vulnerable: 0, frail: 0, poison: 0,
     thorns: 0, intangible: false, gone: false, fled: false, stolen: 0,
     state: {}, isElite: !!def.elite, isBoss: !!def.boss,
@@ -298,6 +301,7 @@ export function startCombat(run, enemyKeys, rng, { kind = 'fight' } = {}) {
     goldRecovered: 0, log: [],
     phase: 'hero', queue: [],
     petId: run.pet || null, // equipped companion (js/pets.js); acts at hero turn start
+    weirdness: run.weirdness || 0, // post-win ladder level (0 = normal)
   };
   for (const k of enemyKeys) spawnEnemy(state, k);
   // deck in: shuffle; innate cards surface at top
@@ -625,9 +629,10 @@ function executeIntent(state, e) {
   if (!it) return;
   if (it.dmg != null) {
     const times = it.times || 1;
+    const wMult = 1 + 0.05 * (state.weirdness || 0);
     for (let t = 0; t < times; t++) {
       if (state.over) break;
-      dealDamage(state, state.hero, attackValue(it.dmg, e), { attacker: e });
+      dealDamage(state, state.hero, Math.round(attackValue(it.dmg, e) * wMult), { attacker: e });
     }
   }
   if (it.block) e.block += it.block;
@@ -638,6 +643,7 @@ function executeIntent(state, e) {
 export function intentPreview(state, e) {
   const it = e.intent;
   if (!it || it.dmg == null) return null;
-  const per = Math.floor(attackValue(it.dmg, e) * incomingMult(state.hero));
+  const wMult = 1 + 0.05 * (state.weirdness || 0);
+  const per = Math.floor(Math.round(attackValue(it.dmg, e) * wMult) * incomingMult(state.hero));
   return { per, times: it.times || 1 };
 }

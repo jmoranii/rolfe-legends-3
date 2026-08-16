@@ -495,14 +495,30 @@ let chosenWorld = 1;
 function showWorldSelect() {
   const s = screen('act-1 farm-screen');
   s.appendChild(el('h2', '', '🗺️ Where to today?'));
+
+  // the WEIRDNESS ladder — opens the first time the Magnet falls
+  if (farm.weirdnessUnlocked) {
+    const wrow = el('div', 'equip-row weirdness-row');
+    const label = el('span', '', `🌀 <b>Weirdness ${farm.weirdness}</b>${farm.weirdness ? ` — weirdos +${farm.weirdness * 7}% ❤️, +${farm.weirdness * 5}% ⚔️` : ' — normal'}`);
+    const minus = el('button', 'btn secondary btn-sm', '−');
+    const plus = el('button', 'btn secondary btn-sm', '+');
+    minus.onclick = () => { if (farm.weirdness > 0) { farm.weirdness -= 1; saveFarm(); showWorldSelect(); } };
+    plus.onclick = () => { if (farm.weirdness < 10) { farm.weirdness += 1; saveFarm(); showWorldSelect(); } };
+    wrow.append(minus, label, plus);
+    s.appendChild(wrow);
+    coachTip('weirdness', 'The worlds can always get weirder. How far can you climb?');
+  }
+
   for (let w = 1; w <= R.WORLDS; w++) {
     const info = R.WORLD_INFO[w];
     const open = w <= farm.worlds.unlocked;
     const beaten = farm.worlds.beaten.includes(w);
+    const best = farm.weirdnessBest[w];
+    const badge = beaten ? (best > 0 ? ` ⭐<span class="weird-badge">🌀${best}</span>` : ' ⭐') : '';
     const c = el('div', 'world-card' + (open ? '' : ' world-locked'));
     const guard = w === 4 ? '🧲 Something magnetic waits at the end…' : `🦆 Boss: ${info.duck} the duck`;
     c.innerHTML = `<div class="world-emoji">${open ? info.emoji : '🔒'}</div>
-      <div><b>World ${w}: ${open ? info.name : '???'}</b>${beaten ? ' ⭐' : ''}<br>
+      <div><b>World ${w}: ${open ? info.name : '???'}</b>${badge}<br>
       <span class="subtitle">${open ? guard : 'Beat the world before it to unlock!'}</span></div>`;
     if (open) c.onclick = () => { sfx.tap(); chosenWorld = w; showHeroSelect(); };
     s.appendChild(c);
@@ -535,8 +551,12 @@ function showPetPop(petId, onDone) {
 // then render the summary after the crown screen.
 function settleExpedition(won) {
   const worldNum = run.act;
+  const weirdness = run.weirdness || 0;
   const openedBefore = farm.worlds.unlocked;
+  const ladderOpenBefore = farm.weirdnessUnlocked;
   const summary = F.settleRun(farm, run, won);
+  summary.weirdness = weirdness;
+  summary.ladderJustOpened = !ladderOpenBefore && farm.weirdnessUnlocked;
   if (won) F.beatWorld(farm, worldNum);
   const opened = farm.worlds.unlocked > openedBefore ? farm.worlds.unlocked : null;
   saveFarm();
@@ -558,6 +578,8 @@ function renderSettlement(data) {
     lines.appendChild(el('p', '', `😢 ${PETS[id].emoji} ${PETS[id].name} found the ${PETS[id].habitat === 'pool' ? 'pool' : 'barn'} FULL… (the shop sells expansions!)`));
   }
   if (data.opened) lines.appendChild(el('p', '', `🗺️ <b>World ${data.opened}: ${R.WORLD_INFO[data.opened].name}</b> is now open!`));
+  if (data.won && data.summary.weirdness > 0) lines.appendChild(el('p', '', `🌀 <b>Weirdness ${data.summary.weirdness}</b> conquered!`));
+  if (data.summary.ladderJustOpened) lines.appendChild(el('p', '', `🌀 <b>THE WEIRDNESS LADDER IS OPEN!</b> The worlds can get weirder now — check "Head out."`));
   s.appendChild(lines);
   const b = el('button', 'btn gold', '🚜 Back to the Farm');
   b.onclick = showFarm;
@@ -636,7 +658,7 @@ function showHeroSelect() {
 }
 
 function startRun(heroId) {
-  run = R.newRun(heroId, randomSeed(), { world: chosenWorld, pet: farm.upgrades.petBattle ? farm.equipped : null });
+  run = R.newRun(heroId, randomSeed(), { world: chosenWorld, pet: farm.upgrades.petBattle ? farm.equipped : null, weirdness: farm.weirdnessUnlocked ? farm.weirdness : 0 });
   run.ownedPets = [...farm.pets]; // drop-roll dedupe: never re-win a pet you own
   showBoon();
 }

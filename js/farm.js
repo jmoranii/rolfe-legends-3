@@ -19,6 +19,9 @@ export function newFarm() {
     equipped: null,           // pet taken into runs (needs the petBattle unlock)
     upgrades: { petBattle: false, barnTier: 0, poolTier: 0 },
     worlds: { unlocked: 1, beaten: [] }, // ladder: beat world N's duck → world N+1 opens
+    weirdness: 0,          // chosen Weirdness level for the next run
+    weirdnessUnlocked: false, // opens when the Magnet first falls
+    weirdnessBest: {},     // world → highest Weirdness beaten (the long game)
     stats: { runs: 0, wins: 0, petsWon: 0, coinsEarned: 0 },
   };
 }
@@ -89,7 +92,15 @@ export function settleRun(farm, run, won) {
   farm.coins += banked;
   farm.stats.coinsEarned += banked;
   farm.stats.runs += 1;
-  if (won) farm.stats.wins += 1;
+  if (won) {
+    farm.stats.wins += 1;
+    const worldNum = run.act;
+    if (worldNum === 4) farm.weirdnessUnlocked = true; // the Magnet fell — the ladder opens
+    const w = run.weirdness || 0;
+    if (w > (farm.weirdnessBest[worldNum] || -1) || farm.weirdnessBest[worldNum] === undefined) {
+      farm.weirdnessBest[worldNum] = Math.max(w, farm.weirdnessBest[worldNum] || 0);
+    }
+  }
   const movedIn = [], turnedAway = [];
   for (const petId of run.petsWon || []) {
     const res = adoptPet(farm, petId);
@@ -117,6 +128,7 @@ export function deserializeFarm(json) {
       ...fresh, ...f,
       upgrades: { ...fresh.upgrades, ...(f.upgrades || {}) },
       worlds: { ...fresh.worlds, ...(f.worlds || {}) },
+      weirdnessBest: { ...(f.weirdnessBest || {}) },
       stats: { ...fresh.stats, ...(f.stats || {}) },
     };
   } catch { return null; }

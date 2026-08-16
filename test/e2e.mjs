@@ -362,7 +362,7 @@ async function fleeExit() {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(BASE, { waitUntil: 'load' });
-  await page.evaluate(() => { window.__RL2.dev.start('wyatt'); window.__RL2.dev.enter('fight', ['magpie']); });
+  await page.evaluate(() => { window.__RL2.dev.start('wyatt'); window.__RL2.dev.enter('fight', ['crow_thief']); });
   await page.waitForSelector('.enemy');
   // never play a card: the Magpie mugs twice, guards, then flies off on turn 4
   for (let turn = 0; turn < 8; turn++) {
@@ -416,25 +416,27 @@ async function deathScreen() {
   await browser.close();
 }
 
-// the Big Twister's bespoke re-form sequence fires on the phase swap
-async function twisterReform() {
+// THE SHED — the sand falls away and the bespoke transform sequence fires
+async function magnetShed() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(BASE, { waitUntil: 'load' });
-  await page.evaluate(() => { window.__RL2.dev.start('aaron'); window.__RL2.dev.enter('boss', ['big_twister']); });
+  await page.evaluate(() => { window.__RL2.dev.start('aaron', 4242, 4); window.__RL2.dev.enter('boss', ['sand_monster']); });
   await page.waitForSelector('.enemy');
   await page.evaluate(() => {
     const { C } = window.__RL2;
-    C.dealDamage(window.__RL2.combat, window.__RL2.combat.enemies[0], 999, { attacker: window.__RL2.combat.hero });
+    C.dealDamage(window.__RL2.combat, window.__RL2.combat.enemies[0], 55, { attacker: window.__RL2.combat.hero, pierce: true });
     window.__RL2.dev.enter('refresh');
   });
   await page.waitForTimeout(400);
   const reforms = await page.evaluate(() => window.__RL2._reforms || 0);
-  ok(reforms >= 1, `twister: bespoke re-form sequence fired (${reforms})`);
-  ok((await page.textContent('.enemy .nm')).includes('REFORMED'), 'twister: phase 2 named on the card');
-  ok(errors.length === 0, `twister: zero page errors${errors.length ? ' — ' + errors[0].slice(0, 120) : ''}`);
+  ok(reforms >= 1, `magnet: the sand-shed transform sequence fired (${reforms})`);
+  ok((await page.textContent('.enemy .nm')).includes('MAGNET'), 'magnet: THE MAGNET named on the card');
+  const intent = await page.textContent('.enemy .intent').catch(() => '');
+  ok(/HELPLESS/i.test(intent), 'magnet: the helpless window is telegraphed');
+  ok(errors.length === 0, `magnet: zero page errors${errors.length ? ' — ' + errors[0].slice(0, 120) : ''}`);
   await browser.close();
 }
 
@@ -473,7 +475,7 @@ async function bigBreakfastBeat() {
   await page.evaluate(() => {
     window.__RL2.dev.start('aaron');
     window.__RL2.run.hp = 40;
-    window.__RL2.dev.enter('fight', ['gopher']);
+    window.__RL2.dev.enter('fight', ['corn_colonel']);
   });
   await page.waitForSelector('.enemy');
   await page.evaluate(() => {
@@ -518,7 +520,7 @@ try {
   await creditsPreview();
   await fleeExit();
   await deathScreen();
-  await twisterReform();
+  await magnetShed();
   await eventStatTick();
   await bigBreakfastBeat();
   await fullscreenButton();

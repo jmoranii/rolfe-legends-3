@@ -1309,6 +1309,41 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(F.deserializeFarm('{"v":1,"pets":["not_a_pet"]}') === null, 'unknown pet id rejects the profile');
 }
 
+// ---------- RL3: the Weirdness ladder (Wyatt's endless-replay spec) ----------
+{
+  const F = await import('../js/farm.js');
+  // weirdos scale: +7% HP and +5% damage per level, previews agree with hits
+  const base = R.newRun('aaron', 99, { world: 1 });
+  const w8 = R.newRun('aaron', 99, { world: 1, weirdness: 8 });
+  const s0 = C.startCombat(base, ['corn_colonel'], makeRng(99));
+  const s8 = C.startCombat(w8, ['corn_colonel'], makeRng(99));
+  ok(s8.enemies[0].maxHp > s0.enemies[0].maxHp * 1.4, `W8 weirdos are beefier (${s0.enemies[0].maxHp} → ${s8.enemies[0].maxHp})`);
+  s0.enemies[0].intent = { name: 'x', kind: 'attack', dmg: 10 };
+  s8.enemies[0].intent = { name: 'x', kind: 'attack', dmg: 10 };
+  const p0 = C.intentPreview(s0, s0.enemies[0]).per;
+  const p8 = C.intentPreview(s8, s8.enemies[0]).per;
+  eq(p8, 14, 'W8 preview shows the scaled hit (10 → 14)');
+  const hp0 = s8.hero.hp;
+  s8.hand = [];
+  C.endTurn(s8);
+  ok(hp0 - s8.hero.hp >= p8 - s8.hero.block, 'the scaled preview is what actually lands');
+  ok(p0 === 10, 'weirdness 0 = untouched numbers');
+
+  // ladder unlock + best tracking through the farm
+  const farm = F.newFarm();
+  ok(!farm.weirdnessUnlocked, 'ladder closed on a fresh farm');
+  F.settleRun(farm, { gold: 0, petsWon: [], act: 4, weirdness: 0 }, true);
+  ok(farm.weirdnessUnlocked, 'the Magnet falls → the ladder opens');
+  F.settleRun(farm, { gold: 0, petsWon: [], act: 2, weirdness: 3 }, true);
+  eq(farm.weirdnessBest[2], 3, 'best Weirdness per world recorded');
+  F.settleRun(farm, { gold: 0, petsWon: [], act: 2, weirdness: 1 }, true);
+  eq(farm.weirdnessBest[2], 3, 'a lower climb never erases the best');
+  F.settleRun(farm, { gold: 0, petsWon: [], act: 2, weirdness: 7 }, false);
+  eq(farm.weirdnessBest[2], 3, 'losses record nothing');
+  const back = F.deserializeFarm(F.serializeFarm(farm));
+  ok(back.weirdnessUnlocked && back.weirdnessBest[2] === 3, 'ladder state round-trips');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {
