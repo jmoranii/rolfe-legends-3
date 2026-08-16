@@ -4,14 +4,6 @@
 
 1. Structure → farm hub + runs (Hades model). 2. Worlds → Hugo's call, 4 worlds; IP relaxed (small private audience), original names + homage. 3. (merged into 2.) 4. Difficulty → HARDER than RL2 (Wyatt's spec: should take him a long time; endless replay) → 20–30 fresh rails + Weirdness ladder. 5. Pets → as recommended; duck-super-pet approved. 6. Secret → yes, creative liberty, really hard to find, zero visual tell (white-dot lesson) → spec in CLAUDE.md §Cast. 7. Photos → none of the ducks; proceed best-effort; James will say if that changes. 8. Delivery → ASAP, same GitHub Pages hosting at his go.
 
-## Kid-credited deviations
-
-(none yet)
-
-## Dialogue / lyrics for approval
-
-(none yet)
-
 ## Kid-credited deviations (build phase)
 
 - **Difficulty shape** — Wyatt's "harder than RL2, takes me a long time" implemented as: world 1 fresh ≈ 65% winrate (the on-ramp), worlds 2–3 ≈ 35–40%, world 4 ≈ 5% fresh / ≈ 20% with a battle buddy (the RL2-hard-equivalent gate), plus the Weirdness ladder (W1–10, +7% HP/+5% dmg per level) as the long game. A flat 20–30% everywhere would have made world 1 miserable for a fresh profile with nothing banked yet; the length now lives in the ladder + Barn Book completion instead. GOAL.md's original "fresh ~25% (rails 20–30)" band was retuned accordingly — rails in test/selfplay.mjs.
