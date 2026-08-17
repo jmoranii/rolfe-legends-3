@@ -293,10 +293,13 @@ for (const hero of Object.keys(report)) {
 let bad = false;
 const total = (h) => report[h].wins / report[h].runs;
 const BAND = { 1: [0.45, 0.85], 2: [0.18, 0.58], 3: [0.18, 0.58], 4: [0.0, 0.16] };
+// small cells are noisy (±14% at n=50): widen the bands below n=75 so quick
+// local runs stay useful without flaking — full rails need n≥300 (75/cell)
+const slack = WORLD_RUNS < 75 ? 0.08 : 0;
 for (const hero of ['aaron', 'wyatt', 'liam']) {
   for (let w = 1; w <= R.WORLDS; w++) {
     const wr = report[hero].perWorld[w].wins / WORLD_RUNS;
-    const [lo, hi] = BAND[w];
+    const [lo, hi] = [Math.max(0, BAND[w][0] - slack), Math.min(1, BAND[w][1] + slack)];
     if (wr < lo) { console.log(`RAIL FAIL: ${hero} W${w} fresh ${(wr * 100).toFixed(1)}% < ${lo * 100}%`); bad = true; }
     if (wr > hi) { console.log(`RAIL FAIL: ${hero} W${w} fresh ${(wr * 100).toFixed(1)}% > ${hi * 100}%`); bad = true; }
   }
@@ -307,7 +310,8 @@ for (const hero of ['aaron', 'wyatt', 'liam']) {
 {
   const totals = ['aaron', 'wyatt', 'liam'].map((h) => total(h));
   const spread = Math.max(...totals) - Math.min(...totals);
-  if (spread > 0.14) { console.log(`RAIL FAIL: hero parity spread ${(spread * 100).toFixed(1)}pts > 14`); bad = true; }
+  const pmax = WORLD_RUNS < 75 ? 0.18 : 0.14;
+  if (spread > pmax) { console.log(`RAIL FAIL: hero parity spread ${(spread * 100).toFixed(1)}pts > ${pmax * 100}`); bad = true; }
 }
 if (stalls > RUNS * 0.1) { console.log(`RAIL FAIL: ${stalls} stalled fights`); bad = true; }
 if (pacing.fight > 7) { console.log(`RAIL FAIL: normal fights average ${pacing.fight.toFixed(1)} turns (bore threshold 7)`); bad = true; }
