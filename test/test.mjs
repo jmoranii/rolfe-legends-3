@@ -1307,6 +1307,11 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(f3.worlds.unlocked === 2 && f3.worlds.beaten.includes(1), 'beating world 1 opens world 2');
   F.beatWorld(f3, 1);
   ok(f3.worlds.beaten.length === 1, 'no duplicate beats');
+  // beating the FINAL world must not unlock a phantom world 5 (blank-screen bug, James's report)
+  f3.worlds.unlocked = 4;
+  F.beatWorld(f3, 4);
+  ok(f3.worlds.unlocked === 4, 'beating world 4 unlocks nothing past the ladder');
+  ok(Object.keys(R.WORLD_INFO).length === 4 && !R.WORLD_INFO[f3.worlds.unlocked + 1], 'no phantom world exists to name');
 
   // save round-trip + forward-safe defaults
   const back = F.deserializeFarm(F.serializeFarm(f3));

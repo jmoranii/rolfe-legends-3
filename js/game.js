@@ -577,7 +577,7 @@ function renderSettlement(data) {
   for (const id of data.summary.turnedAway) {
     lines.appendChild(el('p', '', `😢 ${PETS[id].emoji} ${PETS[id].name} found the ${PETS[id].habitat === 'pool' ? 'pool' : 'barn'} FULL… (the shop sells expansions!)`));
   }
-  if (data.opened) lines.appendChild(el('p', '', `🗺️ <b>World ${data.opened}: ${R.WORLD_INFO[data.opened].name}</b> is now open!`));
+  if (data.opened && R.WORLD_INFO[data.opened]) lines.appendChild(el('p', '', `🗺️ <b>World ${data.opened}: ${R.WORLD_INFO[data.opened].name}</b> is now open!`));
   if (data.won && data.summary.weirdness > 0) lines.appendChild(el('p', '', `🌀 <b>Weirdness ${data.summary.weirdness}</b> conquered!`));
   if (data.summary.ladderJustOpened) lines.appendChild(el('p', '', `🌀 <b>THE WEIRDNESS LADDER IS OPEN!</b> The worlds can get weirder now — check "Head out."`));
   s.appendChild(lines);

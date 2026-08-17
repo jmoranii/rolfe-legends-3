@@ -5,6 +5,7 @@
 // or won a pet still moved you forward — that's the whole point.
 
 import { PETS } from './pets.js';
+import { WORLDS } from './run.js';
 
 export const BARN_START = 5;     // Aaron's spec: "a capacity of five in your barn"
 export const BARN_PER_TIER = 3;  // each shop upgrade adds stalls
@@ -112,7 +113,9 @@ export function settleRun(farm, run, won) {
 // ---------- world ladder ----------
 export function beatWorld(farm, worldNum) {
   if (!farm.worlds.beaten.includes(worldNum)) farm.worlds.beaten.push(worldNum);
-  farm.worlds.unlocked = Math.max(farm.worlds.unlocked, worldNum + 1);
+  // clamp: beating the last world unlocks nothing new (there is no world 5 —
+  // unclamped this crashed the settlement screen blank; James's report)
+  farm.worlds.unlocked = Math.min(WORLDS, Math.max(farm.worlds.unlocked, worldNum + 1));
 }
 
 // ---------- save / load ----------
