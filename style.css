@@ -749,3 +749,30 @@ h1, h2 { text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.25); letter-spac
 @keyframes toysway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
 .barnyard.no-motion .barn-pet, .barnyard.no-motion .barn-pet .pet-face, .barnyard.no-motion .barn-toy { animation: none; }
 @media (prefers-reduced-motion: reduce) { .barnyard .barn-pet, .barnyard .barn-pet .pet-face, .barn-toy { animation: none; } }
+
+/* ================= world weather (map screen) ================= */
+.weather { position: absolute; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.wp { position: absolute; left: var(--wl, 50%); top: -5%; font-size: calc(1rem * var(--ws, 1)); animation: wfall var(--wt, 8s) linear var(--wdel, 0s) infinite; opacity: 0; }
+@keyframes wfall { 0% { transform: translateY(0) translateX(0); opacity: 0; } 8% { opacity: .8; } 90% { opacity: .7; } 100% { transform: translateY(108vh) translateX(30px); opacity: 0; } }
+.wp.pollen { width: 5px; height: 5px; border-radius: 50%; background: #ffe37a; box-shadow: 0 0 6px #ffe37a99; }
+.wp.firefly { color: #d9ff7a; text-shadow: 0 0 8px #d9ff7a; animation: wdrift var(--wt, 9s) ease-in-out var(--wdel, 0s) infinite alternate; top: calc(20% + 40% * var(--ws, 1)); }
+@keyframes wdrift { 0% { transform: translate(0, 0); opacity: .2; } 25% { opacity: 1; } 50% { transform: translate(40px, -24px); opacity: .35; } 75% { opacity: .95; } 100% { transform: translate(-24px, 14px); opacity: .3; } }
+.wp.petal { animation-name: wsway; }
+.wp.butterfly { animation: wdrift var(--wt, 8s) ease-in-out var(--wdel, 0s) infinite alternate; top: calc(15% + 45% * var(--ws, 1)); }
+@keyframes wsway { 0% { transform: translateY(0) translateX(0) rotate(0); opacity: 0; } 8% { opacity: .9; } 50% { transform: translateY(54vh) translateX(-26px) rotate(160deg); } 100% { transform: translateY(108vh) translateX(22px) rotate(340deg); opacity: 0; } }
+.wp.brickbit { width: 10px; height: 6px; border-radius: 2px; animation-name: wtumble; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+@keyframes wtumble { 0% { transform: translateY(0) rotate(0); opacity: 0; } 8% { opacity: .95; } 100% { transform: translateY(108vh) rotate(500deg); opacity: 0; } }
+.wp.glitter { color: #ff8ae0; text-shadow: 0 0 6px #ff8ae0aa; animation-name: wswirl; }
+.wp.spark { color: #ffe37a; text-shadow: 0 0 8px #ff8ae0; animation-name: wswirl; }
+@keyframes wswirl { 0% { transform: translateY(0) translateX(0); opacity: 0; } 10% { opacity: .9; } 33% { transform: translateY(36vh) translateX(34px); } 66% { transform: translateY(72vh) translateX(-30px); } 100% { transform: translateY(108vh) translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wp { animation: none; opacity: 0; } }
+
+/* ================= world-signature enemy entrances ================= */
+.enemy.spawn-w1 { transform-origin: 50% 100%; animation: sproutin .8s cubic-bezier(.34, 1.4, .5, 1) both; animation-delay: calc(var(--si, 0) * .14s); }
+@keyframes sproutin { 0% { transform: scaleY(0) scaleX(.6); opacity: 0; } 60% { transform: scaleY(1.12) scaleX(.95); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.enemy.spawn-w2 { animation: hopin .7s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay: calc(var(--si, 0) * .14s); }
+@keyframes hopin { 0% { transform: translateY(-70px) scale(.7); opacity: 0; } 55% { transform: translateY(6px) scale(1.04); opacity: 1; } 78% { transform: translateY(-8px); } 100% { transform: none; opacity: 1; } }
+.enemy.spawn-w3 { animation: assemblein .9s steps(1, end) both; animation-delay: calc(var(--si, 0) * .16s); }
+@keyframes assemblein { 0% { transform: translate(-14px, 10px) rotate(-6deg) scale(.5); opacity: 0; } 25% { transform: translate(10px, -6px) rotate(4deg) scale(.7); opacity: .6; } 50% { transform: translate(-5px, 3px) rotate(-2deg) scale(.85); opacity: .8; } 75% { transform: translate(2px, -1px) scale(.96); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.enemy.spawn-w4 { animation: risein .95s ease-out both; animation-delay: calc(var(--si, 0) * .15s); }
+@keyframes risein { 0% { transform: translateY(46px) scale(.92); opacity: 0; filter: blur(3px); } 55% { opacity: .9; filter: blur(1px); } 100% { transform: none; opacity: 1; filter: none; } }

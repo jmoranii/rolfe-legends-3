@@ -1478,6 +1478,43 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(fresh2.pets.length, 0, 'no beaten worlds → no free ducks');
 }
 
+// ---------- RL3: per-world map personalities (James's pick #5) ----------
+{
+  // measure wiggle: mean |column change| per edge, averaged over many seeds
+  const wiggle = (act) => {
+    let total = 0, n = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const map = generateActMap(seed, act);
+      for (const [from, tos] of Object.entries(map.edges)) {
+        if (!map.nodes[from]) continue;
+        for (const to of tos) {
+          if (to === BOSS_ID || !map.nodes[to]) continue;
+          total += Math.abs(map.nodes[from].c - map.nodes[to].c);
+          n += 1;
+        }
+      }
+    }
+    return total / n;
+  };
+  const w1 = wiggle(1), w2 = wiggle(2), w3 = wiggle(3), w4 = wiggle(4);
+  ok(w3 < w1, `Bricktopia runs straighter than the crops (${w3.toFixed(2)} < ${w1.toFixed(2)})`);
+  ok(w2 > w3, `the Meadow weaves more than Bricktopia (${w2.toFixed(2)} > ${w3.toFixed(2)})`);
+  ok(w4 > w3, `the Sandbox sways more than Bricktopia (${w4.toFixed(2)} > ${w3.toFixed(2)})`);
+  // every personality still passes every fairness invariant
+  for (let act = 1; act <= 4; act++) {
+    for (let seed = 100; seed < 110; seed++) {
+      eq(validateMap(generateActMap(seed, act)).join(';'), '', `world ${act} personality map ${seed} stays valid`);
+    }
+  }
+  // the Meadow's extra walk means more room to roam
+  let n2 = 0, n3 = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    n2 += Object.keys(generateActMap(seed, 2).nodes).length;
+    n3 += Object.keys(generateActMap(seed, 3).nodes).length;
+  }
+  ok(n2 > n3, `the Meadow is busier than Bricktopia (${n2} vs ${n3} nodes over 30 maps)`);
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

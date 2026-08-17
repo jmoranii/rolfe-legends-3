@@ -17,13 +17,32 @@ export const BOSS_ID = 'boss';
 
 const WALKS = 6;                   // StS generates 6 path walks
 
+// Per-world path personality (James's ask: the worlds should MOVE differently).
+// Same fairness bones — walks, planarize, quotas — different step habits:
+//   W1 Crop Kingdom   : the StS classic wander (baseline)
+//   W2 Critter Meadow : 7 walks and restless steps — burrows everywhere, branchier
+//   W3 Bricktopia     : long straight runs with occasional HARD corners (grid soul)
+//   W4 Kinetic Sandbox: the whole dune drifts — every path sways left, then right, in bands
+function walksFor(act) { return act === 2 ? WALKS + 1 : WALKS; }
+function stepFor(act, f, rng) {
+  const r = rng.int(100);
+  if (act === 2) return r < 40 ? -1 : r < 60 ? 0 : 1;              // restless: mostly moving
+  if (act === 3) return r < 70 ? 0 : r < 85 ? -1 : 1;              // straight, then a corner
+  if (act === 4) {                                                  // banded sway = swirl
+    const drift = (f % 6) < 3 ? 1 : -1;
+    return r < 55 ? drift : r < 80 ? 0 : -drift;
+  }
+  return rng.int(3) - 1;                                            // W1: the classic
+}
+
 export function generateActMap(seed, act) {
   const rng = makeRng((seed ^ Math.imul(act, 0x9E3779B9)) >>> 0);
   // 1) random path walks from floor 1 to floor 10
   const nodeSet = new Set();       // "f-c"
   const edgeSet = new Set();       // "f-c>f-c"
   const starts = [];
-  for (let w = 0; w < WALKS; w++) {
+  const nWalks = walksFor(act);
+  for (let w = 0; w < nWalks; w++) {
     let c = rng.int(MAP_COLS);
     if (w === 1) {                 // StS rule: first two walks start apart
       let guard = 8;
@@ -32,7 +51,7 @@ export function generateActMap(seed, act) {
     starts.push(c);
     nodeSet.add(`1-${c}`);
     for (let f = 1; f < REST_FLOOR - 1; f++) {
-      const step = rng.int(3) - 1;
+      const step = stepFor(act, f, rng);
       const nc = Math.max(0, Math.min(MAP_COLS - 1, c + step));
       nodeSet.add(`${f + 1}-${nc}`);
       edgeSet.add(`${f}-${c}>${f + 1}-${nc}`);

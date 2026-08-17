@@ -792,6 +792,30 @@ function showBoon() {
   }
 }
 
+// ---------- world weather (James's pick #2: each world's air does something) ----------
+// A pointer-less particle layer on the map screen. Pure CSS animation; skipped
+// entirely under reduced motion.
+const WEATHER = {
+  1: { n: 12, make: (i) => (i % 5 === 0 ? el('span', 'wp firefly', '✦') : el('span', 'wp pollen')) },
+  2: { n: 12, make: (i) => (i % 6 === 0 ? el('span', 'wp butterfly', '🦋') : el('span', 'wp petal', '🌸')) },
+  3: { n: 12, make: (i) => { const b = el('span', 'wp brickbit'); b.style.background = ['#e2504c', '#3a7bd5', '#f4c430', '#4caf50'][i % 4]; return b; } },
+  4: { n: 14, make: (i) => (i % 7 === 0 ? el('span', 'wp spark', '⚡') : el('span', 'wp glitter', '✦')) },
+};
+function weatherLayer(act) {
+  const w = el('div', `weather weather-${act}`);
+  if (REDUCED) return w;
+  const spec = WEATHER[act] || WEATHER[1];
+  for (let i = 0; i < spec.n; i++) {
+    const p = spec.make(i);
+    p.style.setProperty('--wl', `${(i * 83 + act * 29) % 100}%`);
+    p.style.setProperty('--wt', `${6 + ((i * 47) % 9)}s`);
+    p.style.setProperty('--wdel', `${-((i * 13) % 11)}s`);
+    p.style.setProperty('--ws', `${0.6 + ((i * 31) % 10) / 12}`);
+    w.appendChild(p);
+  }
+  return w;
+}
+
 // ---------- the map (StS node graph) ----------
 const NODE_META = {
   fight: { ico: '⚔️', name: 'Trouble', desc: "Something's bothering the farm. Fight it!" },
@@ -819,11 +843,12 @@ function showMap() {
   saveRun();
   const s = screen(actCls());
   s.classList.add('map-screen');
+  s.appendChild(weatherLayer(run.act));
   const info = R.WORLD_INFO[run.act];
 
   // top bar
   const bar = el('div', 'map-topbar');
-  bar.appendChild(el('h2', 'map-title', `${info.emoji} Act ${run.act}: ${info.name}`));
+  bar.appendChild(el('h2', 'map-title', `${info.emoji} World ${run.act}: ${info.name}`));
   bar.appendChild(el('div', 'floor-meter', `Floor ${run.floor} / ${MAP_FLOORS} · ❤️ ${run.hp}/${run.maxHp} · 💰 ${run.gold}`));
   const shelf = el('div', 'relic-shelf');
   for (const rid of run.relics) {
@@ -1471,6 +1496,11 @@ function renderCombat(actedEnemy = null) {
     if (e.fled) { row.appendChild(fleeOutEl(e)); enemyEls[i] = null; return; }
     const dead = e.hp <= 0;
     const d = el('div', `enemy${dead ? ' dead' : ''}${e.isBoss ? ' boss-foe' : ''}${e.isElite && !e.isBoss ? ' elite-foe' : ''}`);
+    // world-signature entrance, once per fight: sprout / hop / assemble / rise
+    if (!st._spawnFxDone && !REDUCED) {
+      d.classList.add(`spawn-w${Math.min(4, Math.max(1, run.act))}`);
+      d.style.setProperty('--si', String(i));
+    }
     if (!dead) {
       // Intent etiquette (James, Mon 2026-08-04): a telegraphed move VANISHES the
       // moment the enemy makes it, and the fresh telegraph waits for the start of
@@ -1498,6 +1528,7 @@ function renderCombat(actedEnemy = null) {
     row.appendChild(d);
     enemyEls[i] = d;
   });
+  st._spawnFxDone = true; // entrances play exactly once per fight
   inner.appendChild(row);
 
   // floating diapers (Liam)
