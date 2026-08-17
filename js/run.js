@@ -17,6 +17,8 @@ export const FLOORS_PER_ACT = 12;
 // theming (act-N CSS, mapN assets, mapN music) maps 1:1 onto worlds.
 export const WORLDS = 4;
 
+export const WORLD_DUCKS = { 1: 'brownie', 2: 'diver', 3: 'harmless' };
+
 export const WORLD_INFO = {
   1: { name: 'The Crop Kingdom', emoji: '🌽', time: 'morning', duck: 'Brownie' },
   2: { name: 'Critter Meadow', emoji: '🐾', time: 'day', duck: 'Diver' },
@@ -193,9 +195,16 @@ export function fightRewards(run, kind, rng) {
   }
   if (kind === 'boss') rewards.gold = rng.range(95, 105);
   rewards.cards = cardDraft(run, rng, 3);
-  // RL3: won fights can drop a pet (Aaron's loop). Owned = farm collection +
-  // everything already won this run; the caller passes farm pets via run.ownedPets.
   const owned = [...(run.ownedPets || []), ...run.petsWon, ...(run.pet ? [run.pet] : [])];
+  // A calmed duck JOINS YOU (the boys' approved pitch): beating world 1-3's boss
+  // wins that world's duck as a super-pet. (Was designed day one, missed in the
+  // build — James found his barn duckless after beating the game.)
+  if (kind === 'boss' && WORLD_DUCKS[run.act] && !owned.includes(WORLD_DUCKS[run.act])) {
+    rewards.pet = WORLD_DUCKS[run.act];
+    run.petsWon.push(rewards.pet);
+    return rewards;
+  }
+  // otherwise: normal drop roll (Aaron's loop)
   rewards.pet = petDropRoll(kind, rng, owned);
   if (rewards.pet) run.petsWon.push(rewards.pet);
   return rewards;

@@ -1315,7 +1315,8 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
 
   // save round-trip + forward-safe defaults
   const back = F.deserializeFarm(F.serializeFarm(f3));
-  ok(back && back.coins === f3.coins && back.pets.join() === f3.pets.join(), 'farm round-trips');
+  ok(back && back.coins === f3.coins && f3.pets.every((p) => back.pets.includes(p)), 'farm round-trips');
+  ok(back.pets.includes('brownie'), 'retro-heal: the beaten world 1 pays its duck on load');
   const sparse = F.deserializeFarm(JSON.stringify({ v: 1, pets: ['pig'] }));
   ok(sparse && sparse.upgrades.petBattle === false && sparse.worlds.unlocked === 1, 'sparse profile gets safe defaults');
   ok(F.deserializeFarm('{"v":1,"pets":["not_a_pet"]}') === null, 'unknown pet id rejects the profile');
@@ -1443,6 +1444,38 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   const back = F.deserializeFarm(F.serializeFarm(farm));
   ok(back.toys.includes('tire_swing'), 'toys survive save/load');
   ok(F.deserializeFarm(JSON.stringify({ v: 1, pets: [], toys: ['tire_swing', 'not_a_toy'] })).toys.join() === 'tire_swing', 'unknown toys scrubbed on load');
+}
+
+// ---------- RL3: calmed ducks JOIN YOU (the missed feature James caught) ----------
+{
+  const F = await import('../js/farm.js');
+  // beating a duck world's boss grants that duck, exactly once
+  for (const [w, duck] of [[1, 'brownie'], [2, 'diver'], [3, 'harmless']]) {
+    const run = R.newRun('wyatt', 60 + w, { world: w });
+    const rw = R.fightRewards(run, 'boss', makeRng(w));
+    eq(rw.pet, duck, `world ${w} boss win grants ${duck}`);
+    run.ownedPets = [duck];
+    const rw2 = R.fightRewards(run, 'boss', makeRng(w));
+    ok(rw2.pet !== duck, 'an owned duck never re-drops');
+  }
+  const run4 = R.newRun('wyatt', 64, { world: 4 });
+  const rw4 = R.fightRewards(run4, 'boss', makeRng(4));
+  ok(rw4.pet !== 'brownie' && rw4.pet !== 'diver' && rw4.pet !== 'harmless', 'world 4 grants no duck');
+
+  // boss trophies are NEVER turned away, even with a full pool
+  const farm = F.newFarm();
+  for (const k of ['goldfish', 'catfish']) F.adoptPet(farm, k);
+  farm.upgrades.poolTier = 0; // pool cap 3 → 1 slot left
+  ok(F.adoptPet(farm, 'brownie').adopted, 'brownie fits');
+  ok(F.habitatFull(farm, 'pool'), 'pool now full');
+  ok(F.adoptPet(farm, 'diver').adopted && F.adoptPet(farm, 'harmless').adopted, 'queens never wait for pool space');
+
+  // retro-heal: an old profile that beat duck worlds gets its ducks on load
+  const old = { v: 1, pets: ['pig'], worlds: { unlocked: 4, beaten: [1, 2, 3] } };
+  const healed = F.deserializeFarm(JSON.stringify(old));
+  for (const d of ['brownie', 'diver', 'harmless']) ok(healed.pets.includes(d), `retro-heal grants ${d}`);
+  const fresh2 = F.deserializeFarm(JSON.stringify({ v: 1, pets: [], worlds: { unlocked: 1, beaten: [] } }));
+  eq(fresh2.pets.length, 0, 'no beaten worlds → no free ducks');
 }
 
 // ---------- report ----------

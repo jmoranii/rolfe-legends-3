@@ -1815,7 +1815,10 @@ function combatWon() {
     // card and immediately go home). World 4 rolls the anthem credits first;
     // duck worlds go splash → settlement (where pets + coins bank).
     if (run.act >= R.WORLDS) fadeOutThen(() => showBossSplash(bossName, showVictory));
-    else fadeOutThen(() => showBossSplash(bossName, () => showRunEnd(true)));
+    else {
+      const thenPet = rewards.pet ? (fn) => () => showPetPop(rewards.pet, fn) : (fn) => fn;
+      fadeOutThen(() => showBossSplash(bossName, thenPet(() => showRunEnd(true))));
+    }
   } else if (combatKind === 'elite' && rewards.relic) {
     const rid = rewards.relic;
     rewards.relic = null;

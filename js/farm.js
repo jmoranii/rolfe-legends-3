@@ -74,7 +74,8 @@ export function shopBuy(farm, itemId) {
 export function adoptPet(farm, petId) {
   const def = PETS[petId];
   if (!def || farm.pets.includes(petId)) return { adopted: false, reason: 'owned' };
-  if (habitatFull(farm, def.habitat)) return { adopted: false, reason: 'full' };
+  // boss trophies + secrets are never turned away — the pond makes room for its queens
+  if (!def.source && habitatFull(farm, def.habitat)) return { adopted: false, reason: 'full' };
   farm.pets.push(petId);
   farm.stats.petsWon += 1;
   return { adopted: true };
@@ -216,6 +217,13 @@ export function deserializeFarm(json) {
     if (!f.pets.every((k) => PETS[k])) return null;
     // forward-safe defaults (new fields land without breaking old profiles)
     const fresh = newFarm();
+    // retro-heal: profiles that beat duck worlds before the duck-grant existed
+    // (James's barn was duckless after beating the whole game)
+    const DUCK_OF = { 1: 'brownie', 2: 'diver', 3: 'harmless' };
+    f.pets = Array.isArray(f.pets) ? f.pets : [];
+    for (const w of (f.worlds && f.worlds.beaten) || []) {
+      if (DUCK_OF[w] && !f.pets.includes(DUCK_OF[w])) f.pets.push(DUCK_OF[w]);
+    }
     return {
       ...fresh, ...f,
       upgrades: { ...fresh.upgrades, ...(f.upgrades || {}) },
