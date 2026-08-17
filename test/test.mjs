@@ -1386,6 +1386,49 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(bgMissing.join(','), '', 'every world has map/battle/story-card backdrops');
 }
 
+// ---------- RL3: the Deck Workshop (the boys' ask — permanent starter changes) ----------
+{
+  const F = await import('../js/farm.js');
+  const farm = F.newFarm();
+  farm.coins = 2000;
+
+  // train: a starter arrives upgraded in every future run
+  const p1 = F.trainPrice(farm, 'wyatt');
+  ok(F.trainCard(farm, 'wyatt', 'kick').ok, 'training a Kick works');
+  ok(F.trainPrice(farm, 'wyatt') > p1, 'training prices climb');
+  const starter = F.moddedStarter(farm, 'wyatt');
+  eq(starter.filter((c) => c.id === 'kick' && c.up).length, 1, 'one Kick is permanently trained');
+  const run = R.newRun('wyatt', 42, { starter });
+  eq(run.deck.filter((c) => c.id === 'kick' && c.up).length, 1, 'the trained Kick arrives upgraded in a run');
+  eq(run.deck.length, R.newRun('wyatt', 42).deck.length, 'training changes quality, not count');
+
+  // trim: a starter leaves the deck forever; capped
+  ok(F.trimCard(farm, 'wyatt', 'dodge').ok, 'trimming a Dodge works');
+  const run2 = R.newRun('wyatt', 42, { starter: F.moddedStarter(farm, 'wyatt') });
+  eq(run2.deck.filter((c) => c.id === 'dodge').length, 4, 'a Dodge is gone from every future run');
+  F.trimCard(farm, 'wyatt', 'dodge');
+  F.trimCard(farm, 'wyatt', 'kick');
+  eq(F.trimsUsed(farm, 'wyatt'), 3, 'three trims used');
+  eq(F.trimCard(farm, 'wyatt', 'kick').reason, 'max', 'trim cap enforced');
+
+  // guards: no training an absent card, no spending what you lack
+  eq(F.trainCard(farm, 'wyatt', 'nutmeg').ok && false || F.trainCard(farm, 'aaron', 'kick').reason, 'card', "can't train a card the hero doesn't have");
+  const broke = F.newFarm();
+  eq(F.trainCard(broke, 'aaron', 'shove').reason, 'coins', 'no coins → no training');
+
+  // trimming a trained copy never strands paid training
+  const f2 = F.newFarm(); f2.coins = 5000;
+  F.trainCard(f2, 'aaron', 'tornado_slam');
+  F.trimCard(f2, 'aaron', 'tornado_slam');
+  const slams = F.moddedStarter(f2, 'aaron').filter((c) => c.id === 'tornado_slam');
+  eq(slams.length, 0, 'the only Tornado Slam trimmed away');
+  ok((F.deckMods(f2, 'aaron').up.tornado_slam || 0) <= slams.length, 'orphaned training released');
+
+  // round-trip
+  const back = F.deserializeFarm(F.serializeFarm(farm));
+  eq(F.trimsUsed(back, 'wyatt'), 3, 'deck mods survive save/load');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

@@ -66,7 +66,12 @@ export function newRun(heroId, seed, opts = {}) {
     pet: opts.pet || null,
     weirdness: opts.weirdness || 0, // ladder level (0 = normal; unlocks after the Magnet falls)
     petsWon: [], // pets that dropped during THIS run; the farm banks them at run end
-    deck: [...hero.starter.map((id) => makeCard(id)), ...petDeckCards(opts.pet)],
+    // Deck Workshop mods (farm.js moddedStarter shape): trained starters arrive
+    // upgraded, trimmed ones don't arrive at all
+    deck: [
+      ...(opts.starter || hero.starter.map((id) => ({ id, up: false }))).map((c) => makeCard(c.id ?? c, !!c.up)),
+      ...petDeckCards(opts.pet),
+    ],
     relics: [hero.relic],
     counters: {}, // cross-fight counters (slingshot, sunflower resets per fight in combat state? sunflower is per-fight in StS; keep per-fight by clearing at combat start)
     act: world, floor: 0, // `act` = WORLD number (see the note atop this file)

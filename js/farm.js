@@ -6,6 +6,7 @@
 
 import { PETS } from './pets.js';
 import { WORLDS } from './run.js';
+import { HEROES, CARDS } from './cards.js';
 
 export const BARN_START = 5;     // Aaron's spec: "a capacity of five in your barn"
 export const BARN_PER_TIER = 3;  // each shop upgrade adds stalls
@@ -20,6 +21,7 @@ export function newFarm() {
     equipped: null,           // pet taken into runs (needs the petBattle unlock)
     upgrades: { petBattle: false, barnTier: 0, poolTier: 0 },
     worlds: { unlocked: 1, beaten: [] }, // ladder: beat world N's duck → world N+1 opens
+    deckMods: {},          // per-hero permanent starter-deck changes (the Deck Workshop)
     weirdness: 0,          // chosen Weirdness level for the next run
     weirdnessUnlocked: false, // opens when the Magnet first falls
     weirdnessBest: {},     // world → highest Weirdness beaten (the long game)
@@ -110,6 +112,66 @@ export function settleRun(farm, run, won) {
   return { banked, movedIn, turnedAway };
 }
 
+// ---------- the Deck Workshop (the boys' ask: "slowly alter your starting deck") ----------
+// Two permanent, per-hero levers bought with Farm Coins:
+//   TRAIN — a starter card is upgraded in every future run (Coach's drills stick)
+//   TRIM  — a starter card leaves the deck for good (thinning: the quiet pro move),
+//           capped so a deck can never shrink into nothing.
+export const TRIM_MAX = 3;
+
+export function deckMods(farm, hero) {
+  return (farm.deckMods && farm.deckMods[hero]) || { up: {}, cut: {} };
+}
+function ensureMods(farm, hero) {
+  farm.deckMods = farm.deckMods || {};
+  farm.deckMods[hero] = farm.deckMods[hero] || { up: {}, cut: {} };
+  return farm.deckMods[hero];
+}
+const modCount = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
+export function trainPrice(farm, hero) { return 100 + 50 * modCount(deckMods(farm, hero).up); }
+export function trimPrice(farm, hero) { return 150 + 100 * modCount(deckMods(farm, hero).cut); }
+export function trimsUsed(farm, hero) { return modCount(deckMods(farm, hero).cut); }
+
+// The hero's current starting deck with mods applied: [{id, up}] in starter order.
+export function moddedStarter(farm, hero) {
+  const m = deckMods(farm, hero);
+  const cut = { ...m.cut }, up = { ...m.up };
+  const out = [];
+  for (const id of HEROES[hero].starter) {
+    if (cut[id] > 0) { cut[id] -= 1; continue; }
+    if (up[id] > 0) { up[id] -= 1; out.push({ id, up: true }); continue; }
+    out.push({ id, up: false });
+  }
+  return out;
+}
+
+export function trainCard(farm, hero, cardId) {
+  const price = trainPrice(farm, hero);
+  if (farm.coins < price) return { ok: false, reason: 'coins' };
+  const plain = moddedStarter(farm, hero).filter((c) => c.id === cardId && !c.up).length;
+  if (plain <= 0 || !CARDS[cardId]?.up) return { ok: false, reason: 'card' };
+  farm.coins -= price;
+  const m = ensureMods(farm, hero);
+  m.up[cardId] = (m.up[cardId] || 0) + 1;
+  return { ok: true };
+}
+
+export function trimCard(farm, hero, cardId) {
+  const price = trimPrice(farm, hero);
+  if (farm.coins < price) return { ok: false, reason: 'coins' };
+  if (trimsUsed(farm, hero) >= TRIM_MAX) return { ok: false, reason: 'max' };
+  const have = moddedStarter(farm, hero).filter((c) => c.id === cardId).length;
+  if (have <= 0) return { ok: false, reason: 'card' };
+  farm.coins -= price;
+  const m = ensureMods(farm, hero);
+  m.cut[cardId] = (m.cut[cardId] || 0) + 1;
+  // a trimmed copy that was upgraded frees the training (never strand paid drills)
+  const remaining = moddedStarter(farm, hero).filter((c) => c.id === cardId).length;
+  const upCount = m.up[cardId] || 0;
+  if (upCount > remaining) m.up[cardId] = remaining;
+  return { ok: true };
+}
+
 // ---------- world ladder ----------
 export function beatWorld(farm, worldNum) {
   if (!farm.worlds.beaten.includes(worldNum)) farm.worlds.beaten.push(worldNum);
@@ -131,6 +193,7 @@ export function deserializeFarm(json) {
       ...fresh, ...f,
       upgrades: { ...fresh.upgrades, ...(f.upgrades || {}) },
       worlds: { ...fresh.worlds, ...(f.worlds || {}) },
+      deckMods: { ...(f.deckMods || {}) },
       weirdnessBest: { ...(f.weirdnessBest || {}) },
       stats: { ...fresh.stats, ...(f.stats || {}) },
     };

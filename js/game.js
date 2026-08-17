@@ -484,10 +484,63 @@ function showFarmShop() {
     };
     s.appendChild(b);
   }
+  // the Deck Workshop — permanent starter-deck changes, per hero (the boys' ask)
+  s.appendChild(el('h3', 'barn-section', '🃏 Deck Workshop'));
+  for (const heroId of ['wyatt', 'aaron', 'liam']) {
+    const h = HEROES[heroId];
+    const b = el('button', 'btn');
+    b.innerHTML = `${h.emoji} <b>${h.name.split(' ')[0]}'s Deck</b><br><span class="subtitle">Train or trim the starting deck — forever.</span>`;
+    b.onclick = () => showDeckWorkshop(heroId);
+    s.appendChild(b);
+  }
   const back = el('button', 'btn secondary', '← Farm');
   back.onclick = showFarm;
   s.appendChild(back);
   coachTip('shop_farm', 'Coins stay yours forever — win or lose.');
+}
+
+function showDeckWorkshop(heroId) {
+  const h = HEROES[heroId];
+  modal(`${h.emoji} ${h.name.split(' ')[0]}'s Starting Deck`, (m, close) => {
+    const render = () => {
+      m.innerHTML = '';
+      m.appendChild(el('p', 'subtitle', `💰 ${farm.coins} · ✂️ trims used ${F.trimsUsed(farm, heroId)}/${F.TRIM_MAX}`));
+      const deck = F.moddedStarter(farm, heroId);
+      // one row per distinct card: count, upgraded count, the two levers
+      const byId = {};
+      for (const c of deck) { byId[c.id] = byId[c.id] || { n: 0, up: 0 }; byId[c.id].n += 1; if (c.up) byId[c.id].up += 1; }
+      const trainP = F.trainPrice(farm, heroId);
+      const trimP = F.trimPrice(farm, heroId);
+      for (const [id, info] of Object.entries(byId)) {
+        const def = CARDS[id];
+        const row = el('div', 'workshop-row');
+        row.appendChild(el('span', 'workshop-name', `${def.emoji} <b>${def.name}</b> ×${info.n}${info.up ? ` (⭐${info.up} trained)` : ''}`));
+        const canTrain = info.n - info.up > 0 && def.up;
+        const tb = el('button', 'btn btn-sm' + (canTrain && farm.coins >= trainP ? '' : ' unaffordable'), `🏋️ 💰${trainP}`);
+        tb.onclick = () => {
+          const r = F.trainCard(farm, heroId, id);
+          if (!r.ok) return toast(r.reason === 'coins' ? `Not enough coins (💰${trainP})` : 'Nothing left to train on that one!');
+          saveFarm(); sfx.relic(); toast(`⭐ ${def.name} is TRAINED — upgraded in every run, forever!`); render();
+        };
+        const canTrim = F.trimsUsed(farm, heroId) < F.TRIM_MAX;
+        const xb = el('button', 'btn btn-sm secondary' + (canTrim && farm.coins >= trimP ? '' : ' unaffordable'), `✂️ 💰${trimP}`);
+        xb.onclick = () => {
+          const r = F.trimCard(farm, heroId, id);
+          if (r.ok) { saveFarm(); sfx.relic(); toast(`✂️ A ${def.name} left the deck. Leaner. Meaner.`); return render(); }
+          toast(r.reason === 'coins' ? `Not enough coins (💰${trimP})` : r.reason === 'max' ? `Max ${F.TRIM_MAX} trims per hero!` : 'None of those left!');
+        };
+        const btns = el('span', 'workshop-btns');
+        btns.append(tb, xb);
+        row.appendChild(btns);
+        m.appendChild(row);
+      }
+      m.appendChild(el('p', 'subtitle', '🏋️ Train: that card is upgraded in EVERY run. ✂️ Trim: it leaves the deck for good (fewer cards = your best ones come up more).'));
+      const done = el('button', 'btn secondary', 'Done');
+      done.onclick = close;
+      m.appendChild(done);
+    };
+    render();
+  });
 }
 
 // ---------- world select (the ladder) ----------
@@ -658,7 +711,7 @@ function showHeroSelect() {
 }
 
 function startRun(heroId) {
-  run = R.newRun(heroId, randomSeed(), { world: chosenWorld, pet: farm.upgrades.petBattle ? farm.equipped : null, weirdness: farm.weirdnessUnlocked ? farm.weirdness : 0 });
+  run = R.newRun(heroId, randomSeed(), { world: chosenWorld, pet: farm.upgrades.petBattle ? farm.equipped : null, weirdness: farm.weirdnessUnlocked ? farm.weirdness : 0, starter: F.moddedStarter(farm, heroId) });
   run.ownedPets = [...farm.pets]; // drop-roll dedupe: never re-win a pet you own
   showBoon();
 }

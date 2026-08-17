@@ -726,3 +726,10 @@ h1, h2 { text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.25); letter-spac
 .scene-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity .5s; z-index: 0; }
 .scene-bg.has-art { opacity: .42; }
 .farm-screen > *:not(.scene-bg) { position: relative; z-index: 1; }
+/* Deck Workshop rows + the equip-row button (was stretching off-center) */
+.equip-row .btn, .equip-row .btn-sm { width: auto; margin: 0; }
+.workshop-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: .4rem 0; text-align: left; }
+.workshop-name { font-size: .88rem; }
+.workshop-btns { display: flex; gap: .35rem; }
+.workshop-btns .btn { width: auto; margin: 0; padding: .35rem .55rem; font-size: .8rem; }
+.btn.unaffordable { opacity: .45; }
