@@ -205,7 +205,7 @@ export function fightRewards(run, kind, rng) {
     return rewards;
   }
   // otherwise: normal drop roll (Aaron's loop)
-  rewards.pet = petDropRoll(kind, rng, owned);
+  rewards.pet = petDropRoll(kind, rng, owned, run.act);
   if (rewards.pet) run.petsWon.push(rewards.pet);
   return rewards;
 }

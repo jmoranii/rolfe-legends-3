@@ -574,7 +574,8 @@ export const ENEMIES = {
         self.name = 'THE MAGNET';
         self.artKey = 'magnet_core';
         self.emoji = '🧲';
-        self.maxHp = 100; self.hp = 100; self.block = 0;
+        const wScale = 1 + 0.07 * (state.weirdness || 0); // 100 exactly at Weirdness 0 — the boys' number
+        self.maxHp = Math.round(100 * wScale); self.hp = self.maxHp; self.block = 0;
         self.state.phase = 'magnet'; self.state.staggered = true; self.state.i = 0;
         self.intent = { name: 'HELPLESS — NOW IS YOUR CHANCE!', kind: 'sleep' };
       }

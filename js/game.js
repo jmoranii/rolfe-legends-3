@@ -725,11 +725,28 @@ function showSettings() {
     a2hs.onclick = () => { close(); showA2HS(); };
     const reset = el('button', 'btn danger', '🗑️ Abandon current run');
     reset.onclick = () => { clearSave(); run = null; close(); showTitle(); };
+    // full fresh start (double-confirm): wipes farm, pets, wins, deck mods, tips
+    const nuke = el('button', 'btn danger', '💥 Start over COMPLETELY');
+    nuke.onclick = () => {
+      close();
+      modal('💥 Start over completely?', (m2, close2) => {
+        m2.appendChild(el('p', '', 'This erases EVERYTHING on this device: the farm, all pets, coins, upgrades, wins, and any run in progress. There is no undo.'));
+        const yes = el('button', 'btn danger', 'Yes — wipe it all and start fresh');
+        yes.onclick = () => {
+          for (const k of ['rl3_run', 'rl3_profile', 'rl3_farm', 'rl3_tips', 'rl3_seenfx']) localStorage.removeItem(k);
+          farm = F.newFarm(); run = null;
+          close2(); toast('💥 Fresh farm. Fresh legend. Go get em.'); showTitle();
+        };
+        const no = el('button', 'btn secondary', 'No — keep my stuff!');
+        no.onclick = close2;
+        m2.append(yes, no);
+      });
+    };
     if (fsAvailable()) {
       const fs = el('button', 'btn fs-toggle', fsLabel());
       fs.onclick = () => toggleFullscreen();
-      m.append(mus, sx, anim, fs, a2hs, reset);
-    } else m.append(mus, sx, anim, a2hs, reset);
+      m.append(mus, sx, anim, fs, a2hs, reset, nuke);
+    } else m.append(mus, sx, anim, a2hs, reset, nuke);
     m.appendChild(el('p', 'subtitle', `Rolfe Legends 3 · made by Wyatt, Aaron & Uncle James<br><span style="opacity:.55;font-size:.72rem">version: ${new Date(document.lastModified).toLocaleString()}</span>`));
   });
 }

@@ -1515,6 +1515,40 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   ok(n2 > n3, `the Meadow is busier than Bricktopia (${n2} vs ${n3} nodes over 30 maps)`);
 }
 
+// ---------- RL3: bug-sweep regressions (James's audit ask) ----------
+{
+  const { petDropRoll } = await import('../js/pets.js');
+  const { PETS } = await import('../js/pets.js');
+  // deeper worlds drop rarer pets (designed day one, wired in the sweep)
+  const rareRate = (world) => {
+    let rare = 0, drops = 0;
+    for (let s2 = 0; s2 < 4000; s2++) {
+      const got = petDropRoll('elite', makeRng(s2 * 7 + world), [], world);
+      if (got && got !== 'alien') { drops += 1; if (PETS[got].rarity !== 'common') rare += 1; }
+    }
+    return rare / drops;
+  };
+  ok(rareRate(4) > rareRate(1) + 0.15, `world 4 drops are much shinier than world 1 (${(rareRate(4) * 100).toFixed(0)}% vs ${(rareRate(1) * 100).toFixed(0)}% non-common)`);
+
+  // the Magnet honors the Weirdness ladder (still exactly 100 at W0)
+  const shedAt = (w) => {
+    const run = R.newRun('aaron', 12, { world: 4, weirdness: w });
+    const st = C.startCombat(run, ['sand_monster'], makeRng(12));
+    C.dealDamage(state = st, st.enemies[0], 55, { attacker: st.hero, pierce: true });
+    return st.enemies[0].maxHp;
+  };
+  let state;
+  eq(shedAt(0), 100, "Weirdness 0: the Magnet is EXACTLY 100 (the boys' number)");
+  ok(shedAt(8) > 140, 'Weirdness 8: the Magnet is beefier too');
+
+  // the offline shell list covers every module the game imports
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const imports = [...game.matchAll(/from '\.\/(\w+\.js)'/g)].map((m) => `js/${m[1]}`);
+  const missing = imports.filter((f) => !sw.includes(`'${f}'`));
+  eq(missing.join(','), '', 'sw.js SHELL precaches every module game.js imports (offline boot)');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

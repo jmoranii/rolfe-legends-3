@@ -145,13 +145,21 @@ export function barnBookPets(profile) {
 // absolute roll first — "really, really, really rare" (expected ~1 in 150 wins).
 export const DROP_CHANCE = { fight: 0.12, elite: 0.30, boss: 0.40 };
 export const ALIEN_CHANCE = 1 / 150;
-const RARITY_W = { common: 70, uncommon: 25, rare: 5 };
+// Deeper worlds drop RARER pets (the boys' "more worlds = more good things
+// unlock", finally wired): rarity weights shift toward rare per world.
+const RARITY_BY_WORLD = {
+  1: { common: 75, uncommon: 22, rare: 3 },
+  2: { common: 55, uncommon: 33, rare: 12 },
+  3: { common: 45, uncommon: 38, rare: 17 },
+  4: { common: 35, uncommon: 40, rare: 25 },
+};
 
-export function petDropRoll(kind, rng, owned = []) {
+export function petDropRoll(kind, rng, owned = [], world = 1) {
   const chance = DROP_CHANCE[kind] || 0;
   if (!PET_KEYS.length) return null;
   if (!owned.includes('alien') && rng.chance(ALIEN_CHANCE)) return 'alien';
   if (!rng.chance(chance)) return null;
+  const RARITY_W = RARITY_BY_WORLD[world] || RARITY_BY_WORLD[1];
   const pool = droppablePets().filter((k) => k !== 'alien' && !owned.includes(k));
   if (!pool.length) return null;
   const total = pool.reduce((s, k) => s + RARITY_W[PETS[k].rarity], 0);
