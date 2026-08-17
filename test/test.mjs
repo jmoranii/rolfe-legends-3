@@ -1549,6 +1549,28 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(missing.join(','), '', 'sw.js SHELL precaches every module game.js imports (offline boot)');
 }
 
+// ---------- RL3: no pet is EVER lost (James lost Zorp to a full barn) ----------
+{
+  const F = await import('../js/farm.js');
+  const farm = F.newFarm();
+  for (const k of ['pig', 'chicken', 'cat', 'puppy', 'sheepdog']) F.adoptPet(farm, k); // barn full
+  const sum = F.settleRun(farm, { gold: 0, petsWon: ['alien'], act: 2 }, true);
+  ok(sum.turnedAway.includes('alien') && farm.waiting.includes('alien'), 'a full barn sends Zorp to the GATE, not the void');
+  eq(F.processWaiting(farm).length, 0, 'no room yet → he keeps waiting');
+  farm.coins = 1000;
+  F.shopBuy(farm, 'barn_upgrade');
+  const moved = F.processWaiting(farm);
+  ok(moved.includes('alien') && farm.pets.includes('alien') && !farm.waiting.length, 'barn expansion → Zorp moves in');
+  // waiting list survives save/load; never duplicates; scrubs already-adopted
+  const f2 = F.newFarm();
+  for (const k of ['pig', 'chicken', 'cat', 'puppy', 'sheepdog']) F.adoptPet(f2, k);
+  F.settleRun(f2, { gold: 0, petsWon: ['goat'], act: 1 }, false);
+  F.settleRun(f2, { gold: 0, petsWon: ['goat'], act: 1 }, false);
+  eq(f2.waiting.filter((k) => k === 'goat').length, 1, 'no duplicate gate-waiters');
+  const back = F.deserializeFarm(F.serializeFarm(f2));
+  ok(back.waiting.includes('goat'), 'the gate survives save/load');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {

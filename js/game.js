@@ -310,6 +310,11 @@ function petFace(id, cls = 'pet-face') {
 function showFarm() {
   releaseScreen();
   clearSave(); run = null; // reaching the farm means no expedition is in flight
+  const movedIn = F.processWaiting(farm);
+  if (movedIn.length) {
+    saveFarm();
+    toast(`🎉 ${movedIn.map((id) => `${PETS[id].emoji} ${PETS[id].name}`).join(' & ')} moved in from the gate!`, 3200);
+  }
   music.play('farm');
   const s = screen('act-1 farm-screen');
   s.appendChild(bgLayer('assets/ui/farm.jpg', 'scene-bg'));
@@ -427,6 +432,19 @@ function showBarn() {
   };
   section('The Barn', F.petsIn(farm, 'barn'), F.barnCapacity(farm), 'barn', 260);
   section('🌊 The Fish Pool', F.petsIn(farm, 'pool'), F.poolCapacity(farm), 'pool', 230);
+  if ((farm.waiting || []).length) {
+    s.appendChild(el('h3', 'barn-section', '⏳ Waiting at the gate'));
+    const row = el('div', 'barn-grid');
+    for (const id of farm.waiting) {
+      const p = PETS[id];
+      const c = el('div', 'barn-pet');
+      c.appendChild(petFace(id));
+      c.appendChild(el('div', 'barn-pet-name', p.name));
+      c.onclick = () => toast(`${p.emoji} ${p.name} is waiting for room in the ${p.habitat === 'pool' ? 'pool' : 'barn'} — the shop sells expansions!`, 2600);
+      row.appendChild(c);
+    }
+    s.appendChild(row);
+  }
 
   // antics: every few seconds somebody does a little something (never in reduced motion)
   if (!REDUCED) {
@@ -693,7 +711,7 @@ function renderSettlement(data) {
     lines.appendChild(el('p', '', `${PETS[id].emoji} <b>${PETS[id].name}</b> moved into the ${PETS[id].habitat === 'pool' ? 'fish pool' : 'barn'}!`));
   }
   for (const id of data.summary.turnedAway) {
-    lines.appendChild(el('p', '', `😢 ${PETS[id].emoji} ${PETS[id].name} found the ${PETS[id].habitat === 'pool' ? 'pool' : 'barn'} FULL… (the shop sells expansions!)`));
+    lines.appendChild(el('p', '', `⏳ ${PETS[id].emoji} <b>${PETS[id].name}</b> is waiting at the gate — the ${PETS[id].habitat === 'pool' ? 'pool' : 'barn'} is full! Make room (the shop sells expansions) and they'll move right in.`));
   }
   if (data.opened && R.WORLD_INFO[data.opened]) lines.appendChild(el('p', '', `🗺️ <b>World ${data.opened}: ${R.WORLD_INFO[data.opened].name}</b> is now open!`));
   if (data.won && data.summary.weirdness > 0) lines.appendChild(el('p', '', `🌀 <b>Weirdness ${data.summary.weirdness}</b> conquered!`));
@@ -724,7 +742,13 @@ function showSettings() {
     const a2hs = el('button', 'btn secondary', '📲 Put it on your home screen');
     a2hs.onclick = () => { close(); showA2HS(); };
     const reset = el('button', 'btn danger', '🗑️ Abandon current run');
-    reset.onclick = () => { clearSave(); run = null; close(); showTitle(); };
+    reset.onclick = () => {
+      close();
+      // abandoning still banks coins + pets (progress is never zero — a won
+      // pet must survive even a rage-quit)
+      if (run) return showRunEnd(false);
+      showTitle();
+    };
     // full fresh start (double-confirm): wipes farm, pets, wins, deck mods, tips
     const nuke = el('button', 'btn danger', '💥 Start over COMPLETELY');
     nuke.onclick = () => {

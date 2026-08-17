@@ -23,6 +23,7 @@ export function newFarm() {
     worlds: { unlocked: 1, beaten: [] }, // ladder: beat world N's duck → world N+1 opens
     deckMods: {},          // per-hero permanent starter-deck changes (the Deck Workshop)
     toys: [],              // Barn Toys — decorations the pets hang out with
+    waiting: [],           // pets who found their home FULL — they wait at the gate, never lost
     weirdness: 0,          // chosen Weirdness level for the next run
     weirdnessUnlocked: false, // opens when the Magnet first falls
     weirdnessBest: {},     // world → highest Weirdness beaten (the long game)
@@ -109,7 +110,13 @@ export function settleRun(farm, run, won) {
   const movedIn = [], turnedAway = [];
   for (const petId of run.petsWon || []) {
     const res = adoptPet(farm, petId);
-    (res.adopted ? movedIn : turnedAway).push(petId);
+    if (res.adopted) movedIn.push(petId);
+    else if (res.reason === 'full') {
+      // NEVER lost: they wait at the gate until room opens (James lost Zorp
+      // to a full barn — a 1-in-150 legendary, gone silently. Never again.)
+      farm.waiting = farm.waiting || [];
+      if (!farm.waiting.includes(petId)) { farm.waiting.push(petId); turnedAway.push(petId); }
+    }
   }
   return { banked, movedIn, turnedAway };
 }
@@ -200,6 +207,20 @@ export function trimCard(farm, hero, cardId) {
   return { ok: true };
 }
 
+// Move gate-waiters in whenever room opens (called on farm entry + after shop
+// buys). Returns who moved, for the UI to celebrate.
+export function processWaiting(farm) {
+  const moved = [];
+  for (const petId of [...(farm.waiting || [])]) {
+    const res = adoptPet(farm, petId);
+    if (res.adopted || res.reason === 'owned') {
+      farm.waiting = farm.waiting.filter((p) => p !== petId);
+      if (res.adopted) moved.push(petId);
+    }
+  }
+  return moved;
+}
+
 // ---------- world ladder ----------
 export function beatWorld(farm, worldNum) {
   if (!farm.worlds.beaten.includes(worldNum)) farm.worlds.beaten.push(worldNum);
@@ -230,6 +251,7 @@ export function deserializeFarm(json) {
       worlds: { ...fresh.worlds, ...(f.worlds || {}) },
       deckMods: { ...(f.deckMods || {}) },
       toys: [...(f.toys || [])].filter((t) => TOYS[t]),
+      waiting: [...(f.waiting || [])].filter((k) => PETS[k] && !(f.pets || []).includes(k)),
       weirdnessBest: { ...(f.weirdnessBest || {}) },
       stats: { ...fresh.stats, ...(f.stats || {}) },
     };
