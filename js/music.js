@@ -2,7 +2,7 @@
 // Tracks live at assets/audio/<name>.mp3. Missing files no-op gracefully (drop-in like art).
 // Browser autoplay policy: nothing plays until unlock() is called from a user gesture.
 
-const TRACKS = ['title', 'farm', 'map1', 'map2', 'map3', 'map4', 'battle', 'elite', 'duckboss', 'finalboss', 'victory', 'anthem_wyatt', 'anthem_aaron', 'anthem_liam', 'anthem_all'];
+const TRACKS = ['title', 'farm', 'map1', 'map2', 'map3', 'map4', 'battle1', 'battle2', 'battle3', 'battle4', 'elite', 'duckboss', 'finalboss', 'victory', 'anthem_wyatt', 'anthem_aaron', 'anthem_liam', 'anthem_all'];
 const VOL = 0.45;            // music sits under SFX
 const FADE_MS = 600;
 

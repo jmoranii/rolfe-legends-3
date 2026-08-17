@@ -816,6 +816,7 @@ function showMap() {
 
   prefetchActBundle(run.act);
   if (eliteReachable) prefetch(['assets/audio/elite.mp3']);
+  prefetch([`assets/audio/battle${run.act}.mp3`]);
   if (run.floor >= 8) prefetch(['assets/audio/boss.mp3', 'assets/audio/victory.mp3']);
 }
 
@@ -848,7 +849,7 @@ function startCombatUI(enemyKeys, kind) {
   combat = C.startCombat(run, enemyKeys, makeRng(randomSeed()), { kind });
   lastPulseTurn = -1;
   holdScreen();
-  music.play(kind === 'boss' ? (run.act === R.WORLDS ? 'finalboss' : 'duckboss') : kind === 'elite' ? 'elite' : 'battle');
+  music.play(kind === 'boss' ? (run.act === R.WORLDS ? 'finalboss' : 'duckboss') : kind === 'elite' ? 'elite' : `battle${run.act}`); // every world fights to its own tune
   selectedCard = null;
   prevSnap = null;
   renderCombat();
