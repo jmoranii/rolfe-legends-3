@@ -733,3 +733,19 @@ h1, h2 { text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,.25); letter-spac
 .workshop-btns { display: flex; gap: .35rem; }
 .workshop-btns .btn { width: auto; margin: 0; padding: .35rem .55rem; font-size: .8rem; }
 .btn.unaffordable { opacity: .45; }
+
+/* ================= the LIVING BARNYARD ================= */
+.barnyard { position: relative; width: 100%; max-width: 460px; margin: 0 auto .4rem; background: rgba(0,0,0,.12); border-radius: 18px; overflow: hidden; }
+.barnyard-empty { position: absolute; inset: 40% 0 auto; }
+.barnyard .barn-pet { position: absolute; width: 84px; padding: .3rem .2rem; background: none; animation: wander var(--wd, 7s) ease-in-out infinite alternate; }
+.barnyard .barn-pet .pet-face { box-shadow: 0 3px 8px rgba(0,0,0,.35); animation: petbob 2.8s ease-in-out infinite; }
+@keyframes wander { from { transform: translate(0, 0); } to { transform: translate(var(--dx, 20px), var(--dy, 8px)); } }
+@keyframes petbob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+.barnyard .barn-pet.antic .pet-face { animation: pethop .8s cubic-bezier(.3, -0.4, .4, 1.4); }
+@keyframes pethop { 0% { transform: none; } 30% { transform: translateY(-16px) rotate(-8deg) scale(1.08); } 60% { transform: translateY(0) scale(.96); } 80% { transform: translateY(-6px) rotate(6deg); } 100% { transform: none; } }
+.mood-bubble { position: absolute; top: -14px; right: 2px; font-size: 1.15rem; background: rgba(255,255,255,.92); border-radius: 999px 999px 999px 4px; padding: 2px 6px; animation: moodpop 1.7s ease forwards; pointer-events: none; }
+@keyframes moodpop { 0% { opacity: 0; transform: scale(.4); } 18% { opacity: 1; transform: scale(1.1); } 30% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+.barn-toy { position: absolute; font-size: 1.8rem; cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); animation: toysway 4.5s ease-in-out infinite alternate; }
+@keyframes toysway { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.barnyard.no-motion .barn-pet, .barnyard.no-motion .barn-pet .pet-face, .barnyard.no-motion .barn-toy { animation: none; }
+@media (prefers-reduced-motion: reduce) { .barnyard .barn-pet, .barnyard .barn-pet .pet-face, .barn-toy { animation: none; } }

@@ -363,6 +363,9 @@ function showEquipPicker() {
 }
 
 // The barn visit. Pats have no effect. Pats are mandatory. (INSPIRATION.md #11)
+// It's a living barnyard now (the boys' ask): pets wander, bob, and do little
+// antics; Barn Toys from the shop sit in the scene for them to hang out with.
+const MOODS = ['❤️', '💤', '🎵', '🦋', '⭐', '🍎', '😊'];
 function showBarn() {
   const s = screen('act-1 farm-screen');
   s.appendChild(bgLayer('assets/ui/barn.jpg', 'scene-bg'));
@@ -370,28 +373,73 @@ function showBarn() {
   const patChain = []; // this visit's pat order (the ritual listens — silently)
   const ducksOwned = ['brownie', 'diver', 'harmless'].every((d) => farm.pets.includes(d));
 
-  const section = (title, ids, cap) => {
+  // deterministic scatter: same pet lands in the same spot each visit (it's HIS spot)
+  const spotFor = (key, i, n) => {
+    let hash = 0;
+    for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    // spread first (even columns, alternating rows), personality second (jitter):
+    // nobody ever stacks, but everyone still has THEIR spot
+    const cols = Math.max(1, Math.min(4, Math.ceil(n / 2)));
+    const col = i % cols, row = Math.floor(i / cols);
+    return {
+      left: 4 + col * (74 / Math.max(1, cols - 0.4)) + (hash % 9),
+      top: 6 + row * 44 + ((hash >> 2) % 14),
+      dx: (hash % 2 ? 1 : -1) * (10 + (hash % 16)),
+      dy: ((hash >> 3) % 2 ? 1 : -1) * (5 + (hash % 9)),
+      dur: 6 + (hash % 7),
+    };
+  };
+  const section = (title, ids, cap, habitat, minH) => {
     s.appendChild(el('h3', 'barn-section', `${title} (${ids.length}/${cap})`));
-    const grid = el('div', 'barn-grid');
-    if (!ids.length) grid.appendChild(el('p', 'subtitle', 'Nobody home yet — go win some fights!'));
-    for (const id of ids) {
+    const yard = el('div', 'barnyard' + (REDUCED ? ' no-motion' : ''));
+    yard.style.minHeight = `${minH}px`;
+    if (!ids.length) yard.appendChild(el('p', 'subtitle barnyard-empty', 'Nobody home yet — go win some fights!'));
+    const toys = (farm.toys || []).filter((t) => F.TOYS[t].habitat === habitat);
+    toys.forEach((tid, i) => {
+      const toy = F.TOYS[tid];
+      const t = el('div', 'barn-toy', toy.emoji);
+      t.style.left = `${6 + i * (80 / Math.max(1, toys.length))}%`;
+      t.style.bottom = '4px';
+      t.onclick = () => { sfx.tap(); toast(`${toy.emoji} ${toy.name}: ${toy.desc}`, 2200); };
+      yard.appendChild(t);
+    });
+    ids.forEach((id, i) => {
       const p = PETS[id];
       const c = el('div', 'barn-pet');
+      const spot = spotFor(id, i, ids.length);
+      c.style.left = `${spot.left}%`; c.style.top = `${spot.top}%`;
+      c.style.setProperty('--dx', `${spot.dx}px`);
+      c.style.setProperty('--dy', `${spot.dy}px`);
+      c.style.setProperty('--wd', `${spot.dur}s`);
       c.appendChild(petFace(id));
       c.appendChild(el('div', 'barn-pet-name', p.name));
       c.onclick = () => {
         sfx.tap();
         floaty(c, '❤️', 'floaty-heart');
         toast(`${p.emoji} ${p.blurb}`, 2200);
+        c.classList.remove('antic'); void c.offsetWidth; c.classList.add('antic');
         patChain.push(id);
         maybeSummonGoldie();
       };
-      grid.appendChild(c);
-    }
-    s.appendChild(grid);
+      yard.appendChild(c);
+    });
+    s.appendChild(yard);
   };
-  section('The Barn', F.petsIn(farm, 'barn'), F.barnCapacity(farm));
-  section('🌊 The Fish Pool', F.petsIn(farm, 'pool'), F.poolCapacity(farm));
+  section('The Barn', F.petsIn(farm, 'barn'), F.barnCapacity(farm), 'barn', 260);
+  section('🌊 The Fish Pool', F.petsIn(farm, 'pool'), F.poolCapacity(farm), 'pool', 230);
+
+  // antics: every few seconds somebody does a little something (never in reduced motion)
+  if (!REDUCED) {
+    const anticTick = setInterval(() => {
+      const yardPets = document.querySelectorAll('.barnyard .barn-pet');
+      if (!yardPets.length) { clearInterval(anticTick); return; }
+      const pet = yardPets[Math.floor(Math.random() * yardPets.length)];
+      pet.classList.remove('antic'); void pet.offsetWidth; pet.classList.add('antic');
+      const mood = el('div', 'mood-bubble', MOODS[Math.floor(Math.random() * MOODS.length)]);
+      pet.appendChild(mood);
+      setTimeout(() => mood.remove(), 1700);
+    }, 3200);
+  }
 
   // The ritual: all three ducks home, patted in world order — Brownie, Diver,
   // Harmless — with nothing in between, in one visit. Then someone appears at
@@ -484,6 +532,23 @@ function showFarmShop() {
     };
     s.appendChild(b);
   }
+  // Barn Toys — furnish the barnyard; pets hang out with what you buy
+  const unownedToys = Object.entries(F.TOYS).filter(([id]) => !(farm.toys || []).includes(id));
+  if (unownedToys.length) {
+    s.appendChild(el('h3', 'barn-section', '🧸 Barn Toys'));
+    for (const [id, toy] of unownedToys) {
+      const b = el('button', 'btn' + (farm.coins >= toy.price ? '' : ' unaffordable'));
+      b.innerHTML = `${toy.emoji} <b>${toy.name}</b> — 💰${toy.price} <span class="subtitle">(${toy.habitat === 'pool' ? 'fish pool' : 'barn'})</span><br><span class="subtitle">${toy.desc}</span>`;
+      b.onclick = () => {
+        const r = F.buyToy(farm, id);
+        if (!r.ok) return toast(r.reason === 'coins' ? `Not enough coins yet (💰${toy.price})` : 'Already in the barn!');
+        saveFarm(); sfx.relic(); toast(`${toy.emoji} ${toy.name} delivered to the ${toy.habitat === 'pool' ? 'pool' : 'barnyard'}!`);
+        showFarmShop();
+      };
+      s.appendChild(b);
+    }
+  }
+
   // the Deck Workshop — permanent starter-deck changes, per hero (the boys' ask)
   s.appendChild(el('h3', 'barn-section', '🃏 Deck Workshop'));
   for (const heroId of ['wyatt', 'aaron', 'liam']) {

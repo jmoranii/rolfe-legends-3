@@ -22,6 +22,7 @@ export function newFarm() {
     upgrades: { petBattle: false, barnTier: 0, poolTier: 0 },
     worlds: { unlocked: 1, beaten: [] }, // ladder: beat world N's duck → world N+1 opens
     deckMods: {},          // per-hero permanent starter-deck changes (the Deck Workshop)
+    toys: [],              // Barn Toys — decorations the pets hang out with
     weirdness: 0,          // chosen Weirdness level for the next run
     weirdnessUnlocked: false, // opens when the Magnet first falls
     weirdnessBest: {},     // world → highest Weirdness beaten (the long game)
@@ -112,6 +113,32 @@ export function settleRun(farm, run, won) {
   return { banked, movedIn, turnedAway };
 }
 
+// ---------- Barn Toys (the boys' ask: a barn with personality, things to hang out with) ----------
+// Decorations bought with Farm Coins. Each appears IN the barnyard scene and a
+// wandering pet will drift over and hang out with it. Pure cosmetics + joy.
+export const TOYS = {
+  ball:            { name: 'Bouncy Ball', emoji: '🏀', price: 60, habitat: 'barn', desc: 'Round. Bounceable. Instantly beloved.' },
+  mud_puddle:      { name: 'Mud Puddle', emoji: '🟤', price: 90, habitat: 'barn', desc: 'Premium mud. Sir Oinks approves.' },
+  scratching_post: { name: 'Scratching Post', emoji: '🪵', price: 100, habitat: 'barn', desc: 'For scratching. Also for judging.' },
+  tire_swing:      { name: 'Tire Swing', emoji: '🛞', price: 120, habitat: 'barn', desc: 'The classic. Everyone waits their turn.' },
+  hay_fort:        { name: 'Hay Fort', emoji: '🌾', price: 150, habitat: 'barn', desc: 'A fort of hay. Absolutely defensible.' },
+  slide:           { name: 'Little Slide', emoji: '🛝', price: 180, habitat: 'barn', desc: 'Wheeee. Repeat forever.' },
+  disco_ball:      { name: 'Disco Ball', emoji: '🪩', price: 300, habitat: 'barn', desc: 'Sometimes the barn parties. Nobody talks about it.' },
+  lily_pads:       { name: 'Lily Pads', emoji: '🪷', price: 110, habitat: 'pool', desc: 'Floating furniture for the pool crowd.' },
+  bubble_machine:  { name: 'Bubble Machine', emoji: '🫧', price: 140, habitat: 'pool', desc: 'Infinite bubbles. The fish are mesmerized.' },
+  tiny_castle:     { name: 'Tiny Castle', emoji: '🏰', price: 200, habitat: 'pool', desc: 'Every pool needs a kingdom.' },
+};
+
+export function buyToy(farm, toyId) {
+  const toy = TOYS[toyId];
+  if (!toy || (farm.toys || []).includes(toyId)) return { ok: false, reason: 'owned' };
+  if (farm.coins < toy.price) return { ok: false, reason: 'coins' };
+  farm.coins -= toy.price;
+  farm.toys = farm.toys || [];
+  farm.toys.push(toyId);
+  return { ok: true };
+}
+
 // ---------- the Deck Workshop (the boys' ask: "slowly alter your starting deck") ----------
 // Two permanent, per-hero levers bought with Farm Coins:
 //   TRAIN — a starter card is upgraded in every future run (Coach's drills stick)
@@ -194,6 +221,7 @@ export function deserializeFarm(json) {
       upgrades: { ...fresh.upgrades, ...(f.upgrades || {}) },
       worlds: { ...fresh.worlds, ...(f.worlds || {}) },
       deckMods: { ...(f.deckMods || {}) },
+      toys: [...(f.toys || [])].filter((t) => TOYS[t]),
       weirdnessBest: { ...(f.weirdnessBest || {}) },
       stats: { ...fresh.stats, ...(f.stats || {}) },
     };

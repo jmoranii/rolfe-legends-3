@@ -1429,6 +1429,22 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(F.trimsUsed(back, 'wyatt'), 3, 'deck mods survive save/load');
 }
 
+// ---------- RL3: Barn Toys ----------
+{
+  const F = await import('../js/farm.js');
+  const farm = F.newFarm();
+  farm.coins = 500;
+  ok(Object.keys(F.TOYS).length >= 8, 'a real toy catalog');
+  ok(Object.values(F.TOYS).every((t) => t.name && t.emoji && t.price > 0 && ['barn', 'pool'].includes(t.habitat)), 'every toy is coherent');
+  ok(F.buyToy(farm, 'tire_swing').ok && farm.toys.includes('tire_swing'), 'buying a toy works');
+  eq(F.buyToy(farm, 'tire_swing').reason, 'owned', 'no duplicate toys');
+  farm.coins = 10;
+  eq(F.buyToy(farm, 'disco_ball').reason, 'coins', 'no coins → no disco');
+  const back = F.deserializeFarm(F.serializeFarm(farm));
+  ok(back.toys.includes('tire_swing'), 'toys survive save/load');
+  ok(F.deserializeFarm(JSON.stringify({ v: 1, pets: [], toys: ['tire_swing', 'not_a_toy'] })).toys.join() === 'tire_swing', 'unknown toys scrubbed on load');
+}
+
 // ---------- report ----------
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) {
