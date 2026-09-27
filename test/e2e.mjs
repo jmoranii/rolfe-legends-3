@@ -516,6 +516,31 @@ async function fullscreenButton() {
   await browser.close();
 }
 
+// shared-origin cache hygiene in a REAL browser: RL1/RL2/RL4 share one Cache
+// Storage with RL3 on jmoranii.github.io (it's per-origin, not per-path), so
+// activating RL3's worker must leave sibling games' offline caches alone while
+// still cleaning RL3's own stale versions. The old activate wiped them all.
+async function swSiblingCaches(browserType, name) {
+  const browser = await browserType.launch({ timeout: 30000 });
+  const page = await browser.newPage();
+  const SIBLINGS = ["rolfe-legends-v2", "rolfe-legends-2-v34", "rolfe-legends-4-v1"];
+  const OWN_OLD = 'rolfe-legends-3-v1';
+  // a same-origin page that registers no worker: seed the caches first
+  await page.goto(BASE + '/manifest.json', { waitUntil: 'load' });
+  await page.evaluate(async (names) => {
+    for (const n of names) await (await caches.open(n)).put('/probe-' + n, new Response(n));
+  }, [...SIBLINGS, OWN_OLD]);
+  await page.goto(BASE, { waitUntil: 'load' });
+  // clients.claim() runs after the activate cleanup, so control = cleanup done
+  const claimed = await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 })
+    .then(() => true, () => false);
+  ok(claimed, `${name}: sw activates and claims the page`);
+  const keys = await page.evaluate(() => caches.keys());
+  for (const s of SIBLINGS) ok(keys.includes(s), `${name}: sibling cache ${s} survives RL3's sw activate`);
+  ok(!keys.includes(OWN_OLD), `${name}: RL3's own stale cache ${OWN_OLD} is cleaned`);
+  await browser.close();
+}
+
 try {
   await runSuite(chromium, 'chromium');
   await runSuite(webkit, 'webkit');
@@ -528,6 +553,8 @@ try {
   await eventStatTick();
   await bigBreakfastBeat();
   await fullscreenButton();
+  await swSiblingCaches(chromium, 'sw-chromium');
+  await swSiblingCaches(webkit, 'sw-webkit');
   await deepRun();
 } catch (e) {
   ok(false, 'suite crashed: ' + e.message);

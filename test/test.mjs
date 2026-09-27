@@ -10,6 +10,7 @@ import { generateActMap, reachableIds, validateMap, MAP_FLOORS, TREASURE_FLOOR, 
 import { parseLrc, deriveBeats } from '../js/credits.js';
 import { readFileSync, existsSync } from 'fs';
 import { TIPS_GENERAL, TIPS_HERO, nextTip, LOSS_LINES, nextLossLine } from '../js/tips.js';
+import vm from 'vm';
 
 let passed = 0, failed = 0;
 const fails = [];
@@ -1569,6 +1570,35 @@ if (existsSync(new URL('../assets/audio/anthem_aaron.lrc', import.meta.url))) {
   eq(f2.waiting.filter((k) => k === 'goat').length, 1, 'no duplicate gate-waiters');
   const back = F.deserializeFarm(F.serializeFarm(f2));
   ok(back.waiting.includes('goat'), 'the gate survives save/load');
+}
+
+// ---------- sw.js: shared-origin cache hygiene ----------
+{
+  // Cache Storage is per-ORIGIN, not per-path: RL1, RL2, RL3 (and every sequel)
+  // share ONE cache list on jmoranii.github.io. The old activate (`k !== CACHE`)
+  // deleted every sibling game's offline cache. Run the REAL sw.js in a sandbox
+  // against a fake cache list and check exactly who survives activation.
+  const src = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const CACHE = (/const CACHE = '([^']+)'/.exec(src) || [])[1] || '';
+  ok(/^rolfe-legends-3-v\d+$/.test(CACHE), `sw CACHE keeps RL3's own name scheme (got ${CACHE})`);
+  const prev = CACHE.replace(/\d+$/, (n) => String(n - 1)); // the real upgrade path
+  const OWN_STALE = [...new Set([...["rolfe-legends-3-v1"], prev])].filter((k) => k !== CACHE);
+  // 'rolfe-legends-2-v33' was RL3's own name before its rename (copied from
+  // RL2's sw.js). It is also a real RL2 name, so RL3 must NOT touch it; RL2's
+  // own activate cleans it up.
+  const SIBLINGS = ["rolfe-legends-v2", "rolfe-legends-2-v34", "rolfe-legends-2-v33", "rolfe-legends-4-v1", "rolfe-legends-30-v1", "some-other-app"];
+  const store = new Set([CACHE, ...OWN_STALE, ...SIBLINGS]);
+  const on = {};
+  vm.runInNewContext(src, {
+    self: { addEventListener: (t, fn) => { on[t] = fn; }, skipWaiting: async () => {}, clients: { claim: async () => {} } },
+    caches: { keys: async () => [...store], delete: async (k) => store.delete(k), open: async () => ({}) },
+    location: { origin: 'https://jmoranii.github.io' },
+  });
+  let pending;
+  on.activate({ waitUntil: (p) => { pending = p; } });
+  await pending;
+  const left = [...store].sort().join(',');
+  eq(left, [CACHE, ...SIBLINGS].sort().join(','), 'sw activate deletes only RL3\'s own stale caches (RL1/RL2/RL4 offline caches survive)');
 }
 
 // ---------- report ----------
